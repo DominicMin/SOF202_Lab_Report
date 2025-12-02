@@ -1,4 +1,4 @@
-﻿# 体育场馆预约管理系统（Sports Arena Reservation System）
+﻿# 体育场馆预约管理系统（Sports Complex Reservation System）
 
 ## 功能
 - 角色模型（RBAC）：DBA/Manager/Booking Officer/Coach/Member，使用 `Group + 装饰器` 控制访问。
