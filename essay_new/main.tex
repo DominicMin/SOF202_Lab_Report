@@ -1,0 +1,2824 @@
+\documentclass{xum_review}
+%------------------------------------------------------------
+% 文档类xum_review已包含所需的大部分包和代码环境定义
+% 这里只需要添加文档特定的设置
+%------------------------------------------------------------
+
+\begin{document}
+
+\includepdf[pages=-]{cp.pdf}
+
+\pagestyle{plain} % 设置目录页面无页码，但保留页眉
+\tableofcontents
+\clearpage % 使用clearpage确保目录完整显示
+\pagestyle{fancy} % 恢复正常页码样式
+\fancyfoot[C]{Page \thepage\ of \pageref{LastMainPage}} % 使用自定义的最后一页标签
+\setcounter{page}{1}
+
+\addcontentsline{toc}{section}{Project Gantt Chart and Milestones}
+\includepdf[pages=-, fitpaper=true]{figure/gantt.pdf}
+
+
+\section{Requirement Analysis}
+
+\subsection{Problem Statement}
+
+The university sports complex currently relies on outdated methods such as
+manual registration and spreadsheets to manage equipment, facilities, coaches,
+and bookings. This has led to issues including double bookings, missing records,
+and difficulties in tracking equipment maintenance.
+
+\subsection{Objectives}
+
+Develop a conceptual database system to:
+
+\begin{itemize}
+    \item Maintain a clear catalog of facilities and equipment.
+    \item Allow members (students, faculty, and external visitors) to register and make bookings.
+    \item Enable coaches to be assigned to training sessions.
+    \item Prevent booking conflicts.
+    \item Track maintenance schedules for equipment and facilities.
+\end{itemize}
+
+\subsection{Functional Requirements}
+
+\begin{enumerate}
+    \item The system shall manage member registration with different processes
+    based on user type:
+    \begin{itemize}
+        \item \textbf{Students and Staff:} Automatically become \texttt{Member}
+        upon enrollment or employment at the university. Their
+        \texttt{Student\_ID} or \texttt{Staff\_ID} serves as proof of
+        affiliation, and corresponding \texttt{Member}, \texttt{Student}, or
+        \texttt{Staff} records are created directly in the system.
+        \item \textbf{External Visitors:} Must submit a
+        \texttt{Visitor\_Application} for approval. Upon approval by
+        administrative staff, \texttt{Member} and \texttt{External\_Visitor}
+        records are created.
+    \end{itemize}
+    
+    \item The system shall enable members to book available facilities during
+    specific time slots.
+    
+    \item Before confirming any new booking, the system must
+    automatically check for conflicts with the selected facility and time slot.
+    If a conflict exists (double booking), the system must reject the request
+    and notify the user.
+    
+    \item The system shall provide administrators with a real-time interface to
+    track facility and equipment usage.
+    
+    \item The system shall allow members to view their current, future, and
+    historical booking records after logging in.
+    
+    \item The system shall track and record equipment maintenance schedules and
+    maintenance history.
+    
+    \item The system shall record the timestamp, status, and member information
+    for each booking transaction.
+    
+    \item The system shall assign training sessions based on coach availability
+    and specialization.
+    
+    \item The system shall allow administrators to add, update, or delete
+    facility and equipment records.
+\end{enumerate}
+
+\subsection{Non-Functional Requirements}
+
+\begin{enumerate}
+    \item \textbf{Performance:} The system shall respond to all booking, update,
+    or query requests within 3 seconds under normal load, and shall be capable
+    of handling at least 200 members browsing and booking facilities
+    simultaneously.
+    
+    \item \textbf{Security:} The system must encrypt all member information
+    using industry-standard algorithms (such as \texttt{SHA-256}), and implement
+    Role-Based Access Control (\texttt{RBAC}) to restrict unauthorized data
+    access.
+    
+    \item \textbf{Usability:} The system shall provide a user-friendly and
+    intuitive interface accessible via both desktop and mobile browsers,
+    featuring clear navigation menus, input validation prompts, and booking
+    confirmation dialogs to minimize user errors. Additionally, the system
+    shall support multi-language interfaces (such as English and Chinese)
+    for display.
+    
+    \item \textbf{Reliability:} The system shall perform daily automated backups
+    to prevent data loss.
+    
+    \item \textbf{Auditability:} The system must log all administrator
+    operations (create, read, update, delete) on facilities, equipment, and
+    member records, generating tamper-proof audit logs for future security
+    audits and accountability tracking.
+\end{enumerate}
+
+\subsection{Assumptions}\label{assumptions}
+
+\begin{enumerate}
+    \item We assume that member registration follows different processes based
+    on affiliation:
+    \begin{itemize}
+        \item \textbf{Students and Faculty (Staff):} Automatically become
+        members upon university enrollment or employment. Their university
+        \texttt{Student\_ID} or \texttt{Staff\_ID} is used to create
+        corresponding records in the \texttt{Member}, \texttt{Student}, or
+        \texttt{Staff} tables. They authenticate using their existing
+        university credentials (ID and password).
+        \item \textbf{External Visitors:} Must submit a
+        \texttt{Visitor\_Application} and wait for administrative approval
+        before becoming members. Upon approval, \texttt{Member} and
+        \texttt{External\_Visitor} records are created, and they can register
+        a new account with login credentials.
+    \end{itemize}
+    
+    \item We assume that the system must enforce specific booking rules
+    established by the sports complex administration:
+    \begin{itemize}
+        \item Each member may have a maximum of two active pending bookings at
+        any given time.
+        \item Each member's single booking session cannot exceed three hours in
+        total duration.
+        \item Members may book facilities up to one week in advance.
+    \end{itemize}
+    
+    \item We assume that the system will be developed as a responsive web
+    application, accessible to users directly through browsers on desktop
+    computers and mobile devices.
+    
+    \item We assume that an \texttt{administrator} role will exist with the
+    highest level of privileges, including: editing facility and equipment
+    catalogs, managing all member accounts, assigning coaches, and scheduling
+    maintenance.
+\end{enumerate}
+
+\section{Conceptual Design}
+
+\subsection{Entity and Attribute Identification}
+
+Based on the requirements analysis, the following entities have been identified
+for the University Sports Complex Management System:
+
+\subsubsection{Member (Superclass Entity)}
+
+\textbf{Description:} Represents individuals who can use the sports complex
+facilities. Members are created through different processes:
+\begin{itemize}
+    \item \textbf{Students and Staff:} Automatically registered as members upon
+    university enrollment or employment, using their \texttt{Student\_ID} or
+    \texttt{Staff\_ID}.
+    \item \textbf{External Visitors:} Become members only after submitting and
+    receiving approval for a \texttt{Visitor\_Application}.
+\end{itemize}
+
+\textbf{Attributes:}
+\begin{itemize}
+    \item \texttt{Member\_ID} (\texttt{INT}, \texttt{PK}) - Unique identifier for each member
+    \item \texttt{First\_Name} (\texttt{VARCHAR(50)}) - Member's first name
+    \item \texttt{Last\_Name} (\texttt{VARCHAR(50)}) - Member's last name
+    \item \texttt{Registration\_Date} (\texttt{DATE}) - Date when the member registered
+    \item \texttt{Membership\_Status} (\texttt{ENUM}: Active, Inactive,
+    Pending\_Approval) - Current membership status
+    \item \texttt{Contact\_Details} (Composite attribute) - Contact information
+    \begin{itemize}
+        \item \texttt{Phone\_Number} (\texttt{VARCHAR(20)}, Multi-valued) - Contact phone
+        number(s)
+        \item \texttt{Email\_Address} (\texttt{VARCHAR(100)}, Multi-valued) - Contact email
+        address(es)
+    \end{itemize}
+\end{itemize}
+
+\textbf{Specializations:}
+\begin{itemize}
+    \item \textbf{Student:} \texttt{Student\_ID} (\texttt{VARCHAR(20)}) - University
+    student identification number
+    \item \textbf{Staff:} \texttt{Staff\_ID} (\texttt{VARCHAR(20)}) - University staff
+    identification number
+    \item \textbf{External\_Visitor:} \texttt{IC\_Number} (\texttt{VARCHAR(20)}) -
+    National identification card number
+\end{itemize}
+
+\subsubsection{Facility}
+
+\textbf{Description:} Represents physical sports facilities available for
+booking.
+
+\textbf{Attributes:}
+\begin{itemize}
+    \item \texttt{Facility\_ID} (\texttt{INT}, \texttt{PK}) - Unique identifier for each facility
+    \item \texttt{Facility\_Name} (\texttt{VARCHAR(100)}) - Name of the facility
+    \item \texttt{Type} (\texttt{VARCHAR(50)}) - Type of facility (e.g., Basketball
+    Court, Swimming Pool)
+    \item \texttt{Status} (\texttt{ENUM}: Available, Under\_Maintenance, Unavailable) -
+    Current availability status
+    \item \texttt{Capacity} (\texttt{INT}) - Maximum number of users allowed
+    \item \texttt{Building} (\texttt{VARCHAR(50)}) - Building name (part of composite
+    Location attribute)
+    \item \texttt{Floor} (\texttt{INT}) - Floor number (part of composite Location
+    attribute)
+    \item \texttt{Room\_Number} (\texttt{VARCHAR(20)}) - Room identifier (part of
+    composite Location attribute)
+\end{itemize}
+
+\subsubsection{Equipment}
+
+\textbf{Description:} Represents sports equipment that can be reserved by
+members.
+
+\textbf{Attributes:}
+\begin{itemize}
+    \item \texttt{Equipment\_ID} (\texttt{INT}, \texttt{PK}) - Unique identifier for each
+    equipment type
+    \item \texttt{Equipment\_Name} (\texttt{VARCHAR(100)}) - Name of the equipment
+    \item \texttt{Type} (\texttt{VARCHAR(50)}) - Category of equipment
+    \item \texttt{Status} (\texttt{ENUM}: Available, In\_Use, Under\_Maintenance, Damaged) -
+    Current status
+    \item \texttt{Total\_Quantity} (\texttt{INT}) - Total number of items available
+    \item \texttt{Available\_Quantity} (\texttt{INT}, Derived) - Not stored in the database.
+    Calculated as: Total\_Quantity - (quantity in active reservations + count of active
+    maintenance records)
+\end{itemize}
+
+\subsubsection{Reservation (Superclass Entity)}
+
+\textbf{Description:} Represents a time slot reservation for a facility.
+
+\textbf{Attributes:}
+\begin{itemize}
+    \item \texttt{Reservation\_ID} (\texttt{INT}, \texttt{PK}) - Unique identifier for each
+    reservation
+    \item \texttt{Facility\_ID} (\texttt{INT}, \texttt{FK}) - References Facility
+    \item \texttt{Reservation\_Date} (\texttt{DATE}) - Date of the reservation
+    \item \texttt{Start\_Time} (\texttt{TIME}) - Starting time of the reservation
+    \item \texttt{End\_Time} (\texttt{TIME}) - Ending time of the reservation
+\end{itemize}
+
+\textbf{Specializations:}
+\begin{itemize}
+    \item \textbf{Booking:} Member reservations with \texttt{Member\_ID} (\texttt{INT},
+    \texttt{FK}) and \texttt{Booking\_Status} (\texttt{ENUM}: Pending, Confirmed, Cancelled)
+    \item \textbf{Training\_Session:} Coach-led sessions with \texttt{Coach\_ID}
+    (\texttt{INT}, \texttt{FK}) and \texttt{Max\_Capacity} (\texttt{INT})
+\end{itemize}
+
+\subsubsection{Coach}
+
+\textbf{Description:} Represents sports coaches who conduct training sessions.
+
+\textbf{Attributes:}
+\begin{itemize}
+    \item \texttt{Coach\_ID} (\texttt{INT}, \texttt{PK}) - Unique identifier for each coach
+    \item \texttt{First\_Name} (\texttt{VARCHAR(50)}) - Coach's first name
+    \item \texttt{Last\_Name} (\texttt{VARCHAR(50)}) - Coach's last name
+    \item \texttt{Sport\_Type} (\texttt{VARCHAR(50)}) - Sport specialization (part of
+    composite Specialization attribute)
+    \item \texttt{Level} (\texttt{VARCHAR(20)}) - Certification level (part of composite
+    Specialization attribute)
+    \item \texttt{Contact\_Details} (Composite attribute) - Contact information
+    \begin{itemize}
+        \item \texttt{Phone\_Number} (\texttt{VARCHAR(20)}, Multi-valued) - Contact phone
+        number(s)
+        \item \texttt{Email\_Address} (\texttt{VARCHAR(100)}, Multi-valued) - Contact email
+        address(es)
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Maintenance}
+
+\textbf{Description:} Represents maintenance records for facilities and
+equipment.
+
+\textbf{Attributes:}
+\begin{itemize}
+    \item \texttt{Maintenance\_ID} (\texttt{INT}, \texttt{PK}) - Unique identifier for each
+    maintenance record
+    \item \texttt{Scheduled\_Date} (\texttt{DATE}) - Planned maintenance date
+    \item \texttt{Completion\_Date} (\texttt{DATE}) - Actual completion date
+    \item \texttt{Status} (\texttt{ENUM}: Scheduled, In\_Progress, Completed, Cancelled)
+    - Maintenance status
+    \item \texttt{Description} (\texttt{TEXT}) - Details of maintenance work
+    \item \texttt{Facility\_ID} (\texttt{INT}, \texttt{FK}, Optional) - References Facility (XOR
+    with Equipment\_ID)
+    \item \texttt{Equipment\_ID} (\texttt{INT}, \texttt{FK}, Optional) - References Equipment (XOR
+    with Facility\_ID). Each maintenance record represents maintenance of one equipment
+    instance; multiple equipment items require multiple maintenance records
+\end{itemize}
+
+\subsubsection{Visitor\_Application}
+
+\textbf{Description:} Represents membership registration applications from
+prospective external visitors who are not yet members of the system. Upon
+approval, a \texttt{Member} and \texttt{External\_Visitor} record will be
+created.
+
+\textbf{Attributes:}
+\begin{itemize}
+    \item \texttt{Application\_ID} (\texttt{INT}, \texttt{PK}) - Unique identifier for each
+    application
+    \item \texttt{Name} (Composite attribute) - Applicant's full name
+    \begin{itemize}
+        \item \texttt{First\_Name} (\texttt{VARCHAR(50)}) - First name
+        \item \texttt{Last\_Name} (\texttt{VARCHAR(50)}) - Last name
+    \end{itemize}
+    \item \texttt{Contact\_Details} (Composite attribute) - Applicant's contact information
+    \begin{itemize}
+        \item \texttt{Phone\_Number} (\texttt{VARCHAR(20)}, Multi-valued) - Contact phone
+        number(s)
+        \item \texttt{Email\_Address} (\texttt{VARCHAR(100)}, Multi-valued) - Contact email
+        address(es)
+    \end{itemize}
+    \item \texttt{IC\_Number} (\texttt{VARCHAR(20)}) - Applicant's identification card number
+    \item \texttt{Application\_Date} (\texttt{DATE}) - Date application was submitted
+    \item \texttt{Status} (\texttt{ENUM}: Pending, Approved, Rejected) -
+    Application status
+    \item \texttt{Approved\_By} (\texttt{INT}, \texttt{FK}) - References Staff (administrator who
+    reviews the application)
+    \item \texttt{Approval\_Date} (\texttt{DATE}) - Date of approval/rejection
+    \item \texttt{Reject\_Reason} (\texttt{TEXT}) - Reason for rejection (if applicable)
+\end{itemize}
+
+\textbf{Note:} This entity represents applications from \emph{prospective}
+external visitors. The applicant is not yet a \texttt{Member} when submitting
+the application. After approval, the staff creates corresponding
+\texttt{Member} and \texttt{External\_Visitor} records based on the
+application information.
+
+\subsubsection{Weak Entities and Associative Entities}
+
+Additional entities identified to support relationships:
+
+\begin{itemize}
+    \item \textbf{Reservation\_Equipments} (Weak Entity): Links reservations
+    with equipment
+    \begin{itemize}
+        \item Composite \texttt{PK}: (\texttt{Reservation\_ID}, \texttt{Equipment\_ID})
+        \item \texttt{Quantity} (\texttt{INT}) - Number of items reserved
+    \end{itemize}
+    
+    \item \textbf{Session\_Enrollment} (Weak Entity): Links members with
+    training sessions
+    \begin{itemize}
+        \item Composite \texttt{PK}: (\texttt{Reservation\_ID}, \texttt{Member\_ID})
+    \end{itemize}
+    
+    \item \textbf{Member\_Phone} (Weak Entity): Stores multi-valued phone
+    numbers
+    \begin{itemize}
+        \item Composite \texttt{PK}: (\texttt{Member\_ID}, \texttt{Phone\_Number})
+    \end{itemize}
+    
+    \item \textbf{Member\_Email} (Weak Entity): Stores multi-valued email
+    addresses
+    \begin{itemize}
+        \item Composite \texttt{PK}: (\texttt{Member\_ID}, \texttt{Email\_Address})
+    \end{itemize}
+    
+    \item \textbf{Coach\_Phone} (Weak Entity): Stores coach phone numbers
+    \begin{itemize}
+        \item Composite \texttt{PK}: (\texttt{Coach\_ID}, \texttt{Phone\_Number})
+    \end{itemize}
+    
+    \item \textbf{Coach\_Email} (Weak Entity): Stores coach email addresses
+    \begin{itemize}
+        \item Composite \texttt{PK}: (\texttt{Coach\_ID}, \texttt{Email\_Address})
+    \end{itemize}
+\end{itemize}
+
+\subsection{Enhanced Entity-Relationship Diagram (EERD)}
+
+The complete EERD illustrating all entities, attributes, relationships, and
+constraints is shown below:
+
+\includepdf[pages=-, fitpaper=true]{figure/eerd.pdf}
+
+\section{Logical Design}\label{logical-design-task-3-from-eerd-to-relational-schema}
+
+Based on the Enhanced Entity-Relationship Diagram (EERD), this section
+provides a systematic relational schema design for Scenario 1
+"University Sports Facility Management System" and explains the
+conversion principles from conceptual model to relational model. The
+overall design follows these fundamental guidelines:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \textbf{Strong Entity → Basic Relational Schema}\\ Each strong entity
+  (such as \texttt{Member}, \texttt{Facility}, \texttt{Equipment},
+  \texttt{Coach}, etc.) corresponds to a relational schema.
+\item
+  \textbf{Weak Entity / Associative Entity → Relational Schema with
+  Composite Primary Key}\\ Such as \texttt{Session\_Enrollment},
+  \texttt{Reservation\_Equipments}, etc., where the primary key is
+  typically composed of the primary keys of related entities.
+\item
+  \textbf{1:N Relationship → Foreign Key at N-side}\\ For example, the
+  relationship between \texttt{Member} and \texttt{Booking} is
+  implemented by introducing \texttt{Member\_ID} as a foreign key in the
+  \texttt{Booking} table.
+\item
+  \textbf{N:M Relationship → Independent Association Table}\\ For
+  instance, member enrollment in training sessions and equipment usage
+  in reservations are implemented through tables with composite primary
+  keys.
+\item
+  \textbf{Generalization/Specialization}\\ For \texttt{Member} with
+  \texttt{Student}/\texttt{Staff}/\texttt{External\_Visitor}, a
+  "superclass + subclass" table structure is adopted; for
+  \texttt{Reservation} with \texttt{Booking}/\texttt{Training\_Session},
+  a primary key pushdown subclass structure is used.
+\item
+  \textbf{Handling Composite Attributes and Multi-valued Attributes}
+  \begin{itemize}
+  \item
+    Composite attributes (such as \texttt{Name}, \texttt{Location},
+    \texttt{Contact\_Details}) are decomposed into multiple atomic
+    attributes;
+  \item
+    Multi-valued attributes (such as multiple phone numbers and emails)
+    are converted into independent association tables.
+  \end{itemize}
+\item
+  \textbf{Derived Attributes Not Stored}\\ For example, equipment's
+  \texttt{Available\_Quantity} is calculated from total quantity and
+  allocated quantities in reservations, and is not stored in base tables
+  to avoid redundancy and inconsistency.
+\end{enumerate}
+
+Under the guidance of these principles, the following relational schema
+design is obtained.
+
+\subsection{Personnel and Membership Management Related
+Schemas}\label{personnel-and-membership-management-related-schemas}
+
+\subsubsection{Member Superclass and Subclasses}\label{member-superclass-and-subclasses-student-staff-external_visitor}
+
+\begin{itemize}
+\item
+  \textbf{Member (Superclass)}
+
+  \texttt{Member(Member\_ID\ PK,\\
+  \hspace*{2em} First\_Name,\\
+  \hspace*{2em} Last\_Name,\\
+  \hspace*{2em} Registration\_Date,\\
+  \hspace*{2em} Membership\_Status)}
+
+  \begin{itemize}
+  
+  \item
+    \texttt{First\_Name,\ Last\_Name} are decomposed from the composite
+    attribute \texttt{Name};
+  \item
+    \texttt{Membership\_Status} is used to distinguish states such as
+    Active / Inactive / Pending\_Approval.
+  \end{itemize}
+\item
+  \textbf{Student (Subclass)}
+
+  \texttt{Student(Member\_ID\ PK,\ Student\_ID,\ FK\ →\ Member(Member\_ID))}
+\item
+  \textbf{Staff (Subclass)}
+
+  \texttt{Staff(Member\_ID\ PK,\ Staff\_ID,\ FK\ →\ Member(Member\_ID))}
+\item
+  \textbf{External\_Visitor (Subclass)}
+
+  \texttt{External\_Visitor(Member\_ID\ PK,\ IC\_Number,\ FK\ →\ Member(Member\_ID))}
+\end{itemize}
+
+\begin{quote}
+The "superclass primary key pushdown" strategy is adopted: each
+subclass's \texttt{Member\_ID} is both the primary key of the table and
+a foreign key referencing \texttt{Member}, consistent with the
+specialization structure in EERD, while ensuring that any member belongs
+to at most one subclass (mutual exclusion).
+\end{quote}
+
+\subsubsection{Member\_Phone and Member\_Email: Multi-valued Contact
+Information}\label{member_phone-and-member_email-multi-valued-contact-information}
+
+In the conceptual design, \texttt{Member} has a composite attribute 
+\texttt{Contact\_Details} containing two multi-valued sub-attributes: 
+\texttt{Phone\_Number} and \texttt{Email\_Address}. In relational schema, 
+each multi-valued sub-attribute is converted to a separate weak entity table.
+
+\begin{itemize}
+\item
+  \textbf{Member\_Phone}
+  
+  \texttt{Member\_Phone(Member\_ID\ PK,\ Phone\_Number\ PK,\ FK\ →\ Member(Member\_ID))}
+
+  Corresponds to the multi-valued sub-attribute \texttt{Phone\_Number} of the 
+  composite attribute \texttt{Contact\_Details}. It allows one member to 
+  register multiple phone numbers. The composite primary key 
+  \texttt{(Member\_ID,\ Phone\_Number)} prevents duplicate insertion of 
+  the same phone number for a member.
+
+\item
+  \textbf{Member\_Email}
+  
+  \texttt{Member\_Email(Member\_ID\ PK,\ Email\_Address\ PK,\ FK\ →\ Member(Member\_ID))}
+
+  Corresponds to the multi-valued sub-attribute \texttt{Email\_Address} of the 
+  composite attribute \texttt{Contact\_Details}. It allows one member to 
+  register multiple email addresses. The composite primary key 
+  \texttt{(Member\_ID,\ Email\_Address)} prevents duplicate insertion of 
+  the same email address for a member.
+\end{itemize}
+
+\subsubsection{Visitor\_Application}\label{visitor-application}
+  
+  \texttt{Visitor\_Application(Application\_ID\ PK,\\
+  \hspace*{2em}First\_Name,\\
+  \hspace*{2em}Last\_Name,\\
+  \hspace*{2em}IC\_Number,\\
+  \hspace*{2em}Application\_Date,\\
+  \hspace*{2em}Status,\\
+  \hspace*{2em}Approved\_By\ FK\ →\ Staff(Member\_ID),\\
+  \hspace*{2em}Approval\_Date,\\
+  \hspace*{2em}Reject\_Reason,\\
+  \hspace*{2em}Created\_Member\_ID\ FK\ →\ Member(Member\_ID))}
+
+  \begin{itemize}
+  
+  \item
+    In the conceptual design, \texttt{Visitor\_Application} has a composite
+    attribute \texttt{Name} (containing \texttt{First\_Name} and
+    \texttt{Last\_Name}) and a composite attribute \texttt{Contact\_Details}
+    (containing multi-valued sub-attributes \texttt{Phone\_Number} and
+    \texttt{Email\_Address}). In the relational schema, composite attributes
+    are flattened: \texttt{First\_Name} and \texttt{Last\_Name} become regular
+    columns, while the multi-valued sub-attributes are converted to separate
+    weak entity tables: \texttt{Visitor\_Application\_Phone} and
+    \texttt{Visitor\_Application\_Email}.
+  \item
+    \texttt{IC\_Number} stores the applicant's identification card number,
+    which can be used to verify identity and prevent duplicate applications.
+  \item
+    \texttt{Status} records the application status (Pending, Approved, or Rejected).
+  \item
+    \texttt{Approved\_By} is a foreign key referencing
+    \texttt{Staff(Member\_ID)}, indicating the staff member who reviewed
+    the application.
+  \item
+    \texttt{Created\_Member\_ID} is an optional foreign key that links to the
+    \texttt{Member} record created after approval. This field is \texttt{NULL}
+    for pending or rejected applications, and is set when the application is
+    approved and a new member is created. This allows tracking which application
+    led to which member registration.
+  \end{itemize}
+  
+\subsubsection{Visitor\_Application\_Phone and Visitor\_Application\_Email}
+
+\texttt{Visitor\_Application\_Phone(Application\_ID\ PK,\ Phone\_Number\ PK,\\
+\hspace*{2em}FK\ →\ Visitor\_Application(Application\_ID))}
+
+\texttt{Visitor\_Application\_Email(Application\_ID\ PK,\ Email\_Address\ PK,\\
+\hspace*{2em}FK\ →\ Visitor\_Application(Application\_ID))}
+
+These two weak entities convert the multi-valued sub-attributes of the
+\texttt{Contact\_Details} composite attribute. They allow each application
+to have multiple contact phone numbers and email addresses. The composite
+primary keys prevent duplicate phone numbers or email addresses for the
+same application.
+
+\subsection{Facility, Equipment, and Reservation Related
+Schemas}\label{facility-equipment-and-reservation-related-schemas}
+
+\subsubsection{Sports Facility}\label{facility-sports-facility}
+
+
+  \texttt{Facility(Facility\_ID\ PK,\\
+  \hspace*{2em} Facility\_Name,\\
+  \hspace*{2em} Type,\ Status,\\
+  \hspace*{2em} Capacity,\\
+  \hspace*{2em} Building,\\
+  \hspace*{2em} Floor,\\
+  \hspace*{2em} Room\_Number)}
+
+  \begin{itemize}
+  
+  \item
+    \texttt{Building\ /\ Floor\ /\ Room\_Number} are decomposed from the
+    composite attribute \texttt{Location}, facilitating queries and
+    displays based on building, floor, and room;
+  \item
+    \texttt{Status} reflects the current availability status of the
+    facility, such as AVAILABLE / UNDER\_MAINTENANCE / CLOSED;
+  \item
+    \texttt{Capacity} describes the maximum occupancy of the facility.
+  \end{itemize}
+
+\subsubsection{Equipment}\label{equipment-equipment}
+
+
+  \texttt{Equipment(Equipment\_ID\ PK,\ Equipment\_Name,\ Type,\ Status,\ Total\_Quantity)}
+
+  \begin{itemize}
+  
+  \item
+    \texttt{Total\_Quantity} is the total number of equipment items;
+  \item
+    \texttt{Available\_Quantity} is a derived attribute, not stored in
+    the database. It is calculated dynamically as:
+    \texttt{Available\_Quantity = Total\_Quantity - (quantity in active reservations
+    + count of active maintenance records)}. Since each maintenance record
+    represents one equipment instance, we count maintenance records rather
+    than sum quantities. This ensures real-time accuracy without data redundancy.
+  \item
+    \texttt{Status} indicates equipment availability status (Available,
+    In\_Use, Under\_Maintenance, Damaged), and combined with the
+    \texttt{Maintenance} table provides complete maintenance history.
+  \end{itemize}
+
+\subsubsection{Reservation: Unified Time
+Granularity}\label{reservation-unified-time-granularity}
+
+  \texttt{Reservation(Reservation\_ID\ PK,\\
+  \hspace*{2em} Facility\_ID\ FK\ →\ Facility(Facility\_ID),\\
+  \hspace*{2em} Reservation\_Date,\\
+  \hspace*{2em} Start\_Time,\\
+  \hspace*{2em} End\_Time)}
+
+  \begin{itemize}
+  \item
+    The Reservation entity is used to uniformly represent the fact that
+    "a facility is occupied during a specific time period on a specific
+    date", providing a unified time granularity for member bookings and
+    training sessions. Note that \texttt{Maintenance} is modeled as an
+    independent entity, not as a subclass of \texttt{Reservation}, but
+    application-level logic (e.g., SQL queries, triggers) can check for
+    active maintenance records to prevent conflicting reservations.
+  \item
+    In EERD, \texttt{Reservation} (superclass) has a N:1 relationship with
+    \texttt{Facility}. Therefore, \texttt{Facility\_ID} is defined at the
+    superclass level, allowing all subclasses (\texttt{Booking} and
+    \texttt{Training\_Session}) to inherit this association. Both member
+    bookings and coach-led training sessions require facility allocation,
+    so this design ensures consistency and avoids redundancy.
+  \end{itemize}
+
+
+\subsubsection{Booking: Member
+Reservation}\label{booking-member-reservation}
+
+  \texttt{Booking(Reservation\_ID\ PK,\ Member\_ID\ FK\ →\ Member(Member\_ID),\ Booking\_Status)}
+
+  \begin{itemize}
+  
+  \item
+    \texttt{Reservation\_ID} serves as both Booking's primary
+    key and foreign key referencing \texttt{Reservation}, reflecting
+    that \texttt{Booking} is a subclass of \texttt{Reservation};
+  \item
+    In the EERD, members create reservations for facilities. In the relational
+    schema, this is implemented by storing \texttt{Member\_ID} in the
+    \texttt{Booking} subtype, which is in a 1:1 relationship with
+    \texttt{Reservation} for member-initiated reservations. This design still
+    allows one member to have multiple bookings while keeping the reservation
+    supertype reusable for other purposes (such as \texttt{Training\_Session}).
+  \item
+    \texttt{Booking\_Status} records the booking status (Pending /
+    Confirmed / Cancelled), facilitating front-end and back-end
+    management.
+  \end{itemize}
+
+This structure ensures:
+
+\begin{itemize}
+
+\item
+  Each Reservation corresponds to at most one Booking record (otherwise
+  primary key conflict occurs), ensuring the same time period is not
+  "claimed" by multiple members;
+\item
+  If a Reservation has no corresponding Booking, it means the time
+  period has not been booked by members and can be used for other
+  purposes (such as training sessions).
+\end{itemize}
+
+\subsubsection{Reservation\_Equipments (Week Entity)}\label{reservation_equipments-nm-relationship-between-reservation-and-equipment}
+
+  \texttt{Reservation\_Equipments(\\
+    \hspace*{2em} Reservation\_ID\ PK, \\ 
+    \hspace*{2em} Equipment\_ID\ PK, \\
+    \hspace*{2em} Quantity, \\ 
+    \hspace*{2em} FK\ →\ Reservation(Reservation\_ID), \\ 
+    \hspace*{2em} FK\ →\ Equipment(Equipment\_ID))}
+
+  \begin{itemize}
+  \def\labelenumi{\arabic{enumi}.}
+  
+  \item
+    This table is an associative weak entity between Reservation and
+    Equipment, describing the demand for different equipment in a
+    reservation;
+  \item
+    The composite primary key \texttt{(Reservation\_ID,\ Equipment\_ID)}
+    prevents duplicate registration of the same equipment under the same
+    reservation;
+  \item
+    \texttt{Quantity} represents the demand quantity for the
+    corresponding equipment in this reservation, which is the core field
+    for subsequent calculation of available quantities.
+  \end{itemize}
+
+\subsection{Coach and Training Session Related
+Schemas}\label{coach-and-training-session-related-schemas}
+
+\subsubsection{Coach, Coach\_Phone, and Coach\_Email}\label{coach-coach_phone-and-coach_email}
+
+\begin{itemize}
+\item
+  \textbf{Coach}
+  
+  \texttt{Coach(Coach\_ID\ PK,\ First\_Name,\ Last\_Name,\ Sport\_Type,\ Level)}
+
+  \texttt{Sport\_Type,\ Level} are decomposed from the composite
+  attribute \texttt{Specialization}, supporting queries and scheduling
+  by sport category and coach level.
+  
+\item
+  \textbf{Coach\_Phone and Coach\_Email}
+  
+  Similar to \texttt{Member}, \texttt{Coach} has a composite attribute 
+  \texttt{Contact\_Details} containing two multi-valued sub-attributes: 
+  \texttt{Phone\_Number} and \texttt{Email\_Address}. Each multi-valued 
+  sub-attribute is converted to a separate weak entity table.
+  
+  \texttt{Coach\_Phone(Coach\_ID\ PK,\ Phone\_Number\ PK,\ FK\ →\ Coach(Coach\_ID))}
+
+  Corresponds to the multi-valued sub-attribute \texttt{Phone\_Number} of the 
+  composite attribute \texttt{Contact\_Details}. It allows one coach to 
+  register multiple phone numbers. The composite primary key 
+  \texttt{(Coach\_ID,\ Phone\_Number)} prevents duplicate phone numbers 
+  for the same coach.
+
+\item
+  \texttt{Coach\_Email(Coach\_ID\ PK,\ Email\_Address\ PK,\ FK\ →\ Coach(Coach\_ID))}
+
+  Corresponds to the multi-valued sub-attribute \texttt{Email\_Address} of the 
+  composite attribute \texttt{Contact\_Details}. It allows one coach to 
+  register multiple email addresses. The composite primary key 
+  \texttt{(Coach\_ID,\ Email\_Address)} prevents duplicate email addresses 
+  for the same coach.
+\end{itemize}
+
+\subsubsection{Training\_Session (Subclass of Reservation)}\label{training_session-training-course-reservation-subclass}
+
+  \texttt{Training\_Session(Reservation\_ID\ PK,\\
+  \hspace*{2em} Coach\_ID\ FK\ →\ Coach(Coach\_ID),\\
+  \hspace*{2em} Max\_Capacity,\\
+  \hspace*{2em} FK\ →\ Reservation(Reservation\_ID))}
+
+  \begin{itemize}
+  
+  \item
+    \texttt{Reservation\_ID} is both the primary key and foreign key,
+    indicating that each course is a specific time period and facility
+    occupancy;
+  \item
+    \texttt{Coach\_ID} records the teaching coach, implementing the 1:N
+    relationship \texttt{Coach\ teaches\ Training\_Session} in EERD;
+  \item
+    \texttt{Max\_Capacity} represents the course capacity, providing
+    basic data for enrollment control.
+  \end{itemize}
+
+\subsubsection{Session\_Enrollment (Week Entity)}\label{session_enrollment-course-enrollment-nm}
+
+
+  \texttt{Session\_Enrollment(Reservation\_ID\ PK,\\
+  \hspace*{2em} Member\_ID\ PK,\\
+  \hspace*{2em} FK\ →\ Training\_Session(Reservation\_ID),\\
+  \hspace*{2em} FK\ →\ Member(Member\_ID))}
+
+  \begin{itemize}
+  
+  \item
+    Converted from the N:M relationship between \texttt{Member} and
+    \texttt{Training\_Session};
+  \item
+    The composite primary key \texttt{(Reservation\_ID,\ Member\_ID)}
+    prevents the same member from repeatedly enrolling in the same
+    course;
+  \item
+    Provides data foundation for subsequent statistics on course
+    participation and member training frequency.
+  \end{itemize}
+
+\subsection{Maintenance Entity Relational
+Schema}\label{maintenance-entity-relational-schema}
+
+\texttt{Maintenance} is an independent strong entity used to record
+maintenance plans and execution processes for equipment or facilities.
+Its primary key is \texttt{Maintenance\_ID}, connected to
+\texttt{Facility} and \texttt{Equipment} respectively through the
+\texttt{requires} relationship with cardinality N:1. The conversion to
+relational schema is as follows:
+
+  \noindent \texttt{Maintenance(Maintenance\_ID\ PK,\\
+  \hspace*{2em} Scheduled\_Date,\\
+  \hspace*{2em} Completion\_Date,\\
+  \hspace*{2em} Status,\\
+  \hspace*{2em} Description,\\
+  \hspace*{2em} Facility\_ID\ FK\ →\ Facility(Facility\_ID),\\
+  \hspace*{2em} Equipment\_ID\ FK\ →\ Equipment(Equipment\_ID))}
+
+
+\begin{itemize}
+
+\item
+  \texttt{Maintenance\_ID} is the unique identifier for maintenance
+  records, no longer reusing \texttt{Reservation\_ID}, highlighting the
+  independent business semantics of maintenance records;
+\item
+  \texttt{Scheduled\_Date} and \texttt{Completion\_Date} record the
+  planned maintenance date and actual completion date respectively,
+  which can be used to analyze maintenance delays;
+\item
+  \texttt{Status} reflects the maintenance task status, such as
+  SCHEDULED / IN\_PROGRESS / COMPLETED;
+\item
+  Both \texttt{Facility\_ID} and \texttt{Equipment\_ID} can be null, but
+  must satisfy the business rule: each maintenance record must
+  be associated with either a facility or equipment, but not both null,
+  and usually not both non-null. This can be implemented through CHECK
+  constraints or application-level logic;
+\item
+  Maintenance records are not structurally strongly bound to
+  Reservation, but selectively create corresponding Reservations for
+  maintenance periods through upper-level logic when needed, to avoid
+  continuing to open facilities for booking during maintenance time.
+\end{itemize}
+
+
+\subsection{SQL Definition Examples for Key
+Relationships}\label{sql-definition-examples-for-key-relationships}
+
+To highlight the implementation of primary keys, foreign keys, and key
+constraints, this subsection provides MySQL DDL code snippets for
+several representative relational schemas.
+
+\subsubsection{Facility and
+Reservation}\label{facility-and-reservation}
+
+\begin{sql}
+CREATE TABLE Facility (
+	Facility_ID     INT UNSIGNED PRIMARY KEY,
+	Facility_Name   VARCHAR(100) NOT NULL,
+	Type            VARCHAR(30)  NOT NULL,
+	Status          ENUM('Available', 'Under_Maintenance', 'Unavailable') NOT NULL,
+	Capacity        INT UNSIGNED NOT NULL CHECK (Capacity > 0),
+	Building        VARCHAR(50)  NOT NULL,
+	Floor           TINYINT      NOT NULL,
+	Room_Number     VARCHAR(10)  NOT NULL
+);
+
+CREATE TABLE Reservation (
+	Reservation_ID   INT UNSIGNED PRIMARY KEY,
+	Facility_ID      INT UNSIGNED NOT NULL,
+	Reservation_Date DATE        NOT NULL,
+	Start_Time       TIME        NOT NULL,
+	End_Time         TIME        NOT NULL,
+	CONSTRAINT fk_reservation_facility
+		FOREIGN KEY (Facility_ID)
+		REFERENCES Facility(Facility_ID),
+	CONSTRAINT chk_reservation_time
+		CHECK (Start_Time < End_Time)
+);
+\end{sql}
+
+\subsubsection{Booking: Preventing Duplicate Claims for the Same
+Time
+Slot}\label{booking-preventing-duplicate-claims-for-the-same-time-slot}
+
+\begin{sql}
+CREATE TABLE Booking (
+    Reservation_ID  INT UNSIGNED PRIMARY KEY,
+    Member_ID       INT UNSIGNED NOT NULL,
+    Booking_Status  ENUM('Pending', 'Confirmed', 'Cancelled') NOT NULL,
+    CONSTRAINT fk_booking_reservation
+        FOREIGN KEY (Reservation_ID)
+        REFERENCES Reservation(Reservation_ID),
+    CONSTRAINT fk_booking_member
+        FOREIGN KEY (Member_ID)
+        REFERENCES Member(Member_ID)
+);
+\end{sql}
+
+\subsubsection{Reservation\_Equipments: Equipment Usage
+Record}\label{reservation_equipments-equipment-usage-record}
+
+\begin{sql}
+CREATE TABLE Reservation_Equipments (
+    Reservation_ID  INT UNSIGNED NOT NULL,
+    Equipment_ID    INT UNSIGNED NOT NULL,
+    Quantity        INT UNSIGNED NOT NULL CHECK (Quantity > 0),
+    PRIMARY KEY (Reservation_ID, Equipment_ID),
+    CONSTRAINT fk_re_reservation
+        FOREIGN KEY (Reservation_ID)
+        REFERENCES Reservation(Reservation_ID),
+    CONSTRAINT fk_re_equipment
+        FOREIGN KEY (Equipment_ID)
+        REFERENCES Equipment(Equipment_ID)
+);
+\end{sql}
+
+\subsubsection{Training\_Session and
+Session\_Enrollment}\label{training_session-and-session_enrollment}
+
+\begin{sql}
+CREATE TABLE Training_Session (
+    Reservation_ID  INT UNSIGNED PRIMARY KEY,
+    Coach_ID        INT UNSIGNED NOT NULL,
+    Max_Capacity    INT UNSIGNED NOT NULL CHECK (Max_Capacity > 0),
+    CONSTRAINT fk_ts_reservation
+        FOREIGN KEY (Reservation_ID)
+        REFERENCES Reservation(Reservation_ID),
+    CONSTRAINT fk_ts_coach
+        FOREIGN KEY (Coach_ID)
+        REFERENCES Coach(Coach_ID)
+);
+
+CREATE TABLE Session_Enrollment (
+    Reservation_ID  INT UNSIGNED NOT NULL,
+    Member_ID       INT UNSIGNED NOT NULL,
+    PRIMARY KEY (Reservation_ID, Member_ID),
+    CONSTRAINT fk_se_session
+        FOREIGN KEY (Reservation_ID)
+        REFERENCES Training_Session(Reservation_ID),
+    CONSTRAINT fk_se_member
+        FOREIGN KEY (Member_ID)
+        REFERENCES Member(Member_ID)
+);
+\end{sql}
+
+\subsubsection{Maintenance: Independent Maintenance
+Record}\label{maintenance-independent-maintenance-record}
+
+\begin{sql}
+CREATE TABLE Maintenance (
+	Maintenance_ID   INT UNSIGNED PRIMARY KEY,
+	Scheduled_Date   DATE        NOT NULL,
+	Completion_Date  DATE        NULL,
+	Status           ENUM('Scheduled', 'In_Progress', 'Completed', 'Cancelled') NOT NULL,
+	Description      TEXT        NULL,
+	Facility_ID      INT UNSIGNED NULL,
+	Equipment_ID     INT UNSIGNED NULL,
+	-- Note: Each maintenance record represents one equipment instance or one facility.
+	-- Multiple equipment items require multiple maintenance records.
+	CONSTRAINT fk_maintenance_facility
+		FOREIGN KEY (Facility_ID)
+		REFERENCES Facility(Facility_ID),
+	CONSTRAINT fk_maintenance_equipment
+		FOREIGN KEY (Equipment_ID)
+		REFERENCES Equipment(Equipment_ID),
+	CONSTRAINT chk_maintenance_target
+		CHECK (
+			(Facility_ID IS NOT NULL AND Equipment_ID IS NULL)
+			OR
+			(Facility_ID IS NULL AND Equipment_ID IS NOT NULL)
+		)
+);
+\end{sql}
+
+Through the above key DDL code, the implementation of primary keys,
+foreign keys, and CHECK constraints in relational schemas can be more
+intuitively demonstrated, laying the foundation for the next section on
+physical design analysis.
+
+\section{Physical Design and Rationality Analysis}\label{physical-design-and-rationality-analysis-task-4}
+
+After completing the logical schema design, the physical design phase
+needs to make specific data type selections, constraint and indexing
+strategies for the target DBMS (MySQL in this case), and demonstrate the
+rationality of the design from perspectives such as "meeting business
+requirements" and "effectively preventing booking conflicts".
+
+This section analyzes from four aspects: data types, constraints,
+indexes, and key business rules.
+
+\subsection{Data Type and Constraint
+Selection}\label{data-type-and-constraint-selection}
+
+\subsubsection{Identifiers and Primary Key
+Fields}\label{identifiers-and-primary-key-fields}
+
+The identifiers of each entity (such as \texttt{Member\_ID}, 
+\texttt{Facility\_ID}, \texttt{Equipment\_ID}, \texttt{Reservation\_ID},
+\texttt{Application\_ID}, \texttt{Maintenance\_ID}, etc.) uniformly
+adopt:
+
+\begin{sql}
+INT UNSIGNED
+\end{sql}
+
+Reasons:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+
+\item
+  Facilitates the use of \texttt{AUTO\_INCREMENT} for automatic
+  numbering, simplifying insertion logic;
+\item
+  Unsigned integers provide a larger range of positive values, meeting
+  the primary key growth requirements under long-term use;
+\item
+  Works well with InnoDB's clustered index mechanism, providing good
+  insertion and lookup performance.
+\end{enumerate}
+
+The primary keys of subclass tables (such as \texttt{Student},
+\texttt{Staff}, \texttt{External\_Visitor}, \texttt{Training\_Session},
+\texttt{Booking}) all reuse the superclass primary key, physically also
+using \texttt{INT\ UNSIGNED}, ensuring simple and clear foreign key
+references.
+
+\subsubsection{Text and Descriptive
+Fields}\label{text-and-descriptive-fields}
+
+\begin{itemize}
+\item
+  Person names, facility names, equipment names, etc., use the
+  \texttt{VARCHAR} type:
+
+\begin{sql}
+First_Name      VARCHAR(50),
+Last_Name       VARCHAR(50),
+Facility_Name   VARCHAR(100),
+Equipment_Name  VARCHAR(100)  
+\end{sql}
+
+  Supports mixed Chinese-English text, with lengths balancing space and
+  actual usage scenarios.
+\item
+  Descriptive fields such as \texttt{Description},
+  \texttt{Reject\_Reason} use the \texttt{TEXT} type to accommodate
+  longer text, suitable for complex maintenance descriptions or
+  rejection reasons.
+\end{itemize}
+
+\subsubsection{Date and Time Fields}\label{date-and-time-fields}
+
+\begin{itemize}
+
+\item
+  Date: \texttt{Reservation\_Date}, \texttt{Application\_Date},
+  \texttt{Approval\_Date}, \texttt{Scheduled\_Date},
+  \texttt{Completion\_Date}, etc., use the \texttt{DATE} type;
+\item
+  Time: \texttt{Start\_Time}, \texttt{End\_Time} use the \texttt{TIME}
+  type.
+\end{itemize}
+
+Separating date and time has the following advantages:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+
+\item
+  Facilitates statistics by date dimension, such as booking volume and
+  maintenance volume (e.g., "facility utilization rate for a certain
+  week");
+\item
+  Time conflict calculations are simple, focusing on start and end times
+  within the same day, more intuitive than operating complete
+  timestamps;
+\item
+  Reserves space for future expansion to cross-day bookings (can be
+  implemented through additional flags or date ranges).
+\end{enumerate}
+
+\subsubsection{Status Fields and ENUM
+Usage}\label{status-fields-and-enum-usage}
+
+For status fields with limited value ranges and clear business semantics
+(such as \\ \texttt{Booking\_Status}, \texttt{Membership\_Status},
+\texttt{Maintenance.Status}, \texttt{Facility.Status}, etc.), MySQL's
+\texttt{ENUM} type is uniformly adopted, for example:
+
+\begin{sql}
+Membership_Status ENUM('Active', 'Inactive', 'Pending_Approval') NOT NULL;  
+\end{sql}
+
+Benefits include:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+
+\item
+  Embeds business rules at the data type level, avoiding spelling errors
+  or illegal status values;
+\item
+  Query conditions are concise, improving SQL readability;
+\item
+  Easily corresponds to frontend enumeration constants, reducing
+  front-end and back-end coordination costs.
+\end{enumerate}
+
+\subsubsection{Numeric Fields and Check
+Constraints}\label{numeric-fields-and-check-constraints}
+
+Capacity and quantity fields (such as \texttt{Capacity},
+\texttt{Total\_Quantity}, \texttt{Max\_Capacity}, \texttt{Quantity})
+uniformly use \texttt{INT\ UNSIGNED} and are given
+\texttt{CHECK\ \textgreater{}\ 0} constraints:
+
+\begin{sql}
+Capacity     INT UNSIGNED NOT NULL CHECK (Capacity > 0);
+Total_Quantity INT UNSIGNED NOT NULL CHECK (Total_Quantity > 0);
+\end{sql}
+
+These constraints ensure domain integrity, preventing
+unreasonable situations such as negative numbers or zero capacity.
+
+The derived attribute \texttt{Available\_Quantity} is not stored as a static field but dynamically calculated \textbf{for a specific time slot} through queries. For example:
+
+\begin{sql}
+SELECT  e.Equipment_ID,
+      e.Equipment_Name,
+      e.Total_Quantity
+      - IFNULL(SUM(re.Quantity), 0)  -- subtract reserved quantity
+      - IFNULL(COUNT(DISTINCT m.Maintenance_ID), 0)  -- subtract maintenance count
+      AS Available_Quantity
+FROM Equipment e
+LEFT JOIN Reservation_Equipments re
+       ON e.Equipment_ID = re.Equipment_ID
+      -- Filter active reservations overlapping with the REQUESTED TIME SLOT
+LEFT JOIN Maintenance m
+       ON e.Equipment_ID = m.Equipment_ID
+      AND m.Status IN ('Scheduled', 'In_Progress')  -- only active maintenance during the REQUESTED TIME SLOT
+WHERE ...
+GROUP BY e.Equipment_ID, e.Equipment_Name, e.Total_Quantity;
+\end{sql}
+
+This approach avoids distortion of available quantities due to
+unsynchronized updates, while still meeting performance requirements
+under appropriate indexing.
+
+\subsection{Index Strategy and Query
+Performance}\label{index-strategy-and-query-performance}
+
+Based on typical operational requirements in Scenario 1 (such as "view
+booking status for a facility on a specific day", "query courses by
+coach", "query historical bookings by member", etc.), this design
+focuses on establishing auxiliary indexes for the following fields:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \textbf{Reservation Level}:
+
+  \begin{itemize}
+  
+  \item
+    \texttt{(Facility\_ID,\ Reservation\_Date,\ Start\_Time)} composite
+    unique index, used for both conflict detection and high-frequency
+    queries;
+  \end{itemize}
+\item
+  \textbf{Booking Level}:
+
+  \begin{itemize}
+  
+  \item
+    Secondary index on \texttt{Booking(Member\_ID)} to accelerate
+    querying all booking records by member;
+  \end{itemize}
+\item
+  \textbf{Training\_Session / Session\_Enrollment Level}:
+
+  \begin{itemize}
+  
+  \item
+    \texttt{Training\_Session(Coach\_ID)}: for listing all courses by
+    coach;
+  \item
+    \texttt{Session\_Enrollment(Member\_ID)}: for querying course
+    participation records by member;
+  \end{itemize}
+\item
+  \textbf{Maintenance Level}:
+
+  \begin{itemize}
+  
+  \item
+    \texttt{Maintenance(Facility\_ID,\ Scheduled\_Date)}: for filtering
+    maintenance tasks by facility and date;
+  \item
+    \texttt{Maintenance(Equipment\_ID,\ Scheduled\_Date)}: for querying
+    maintenance plans by equipment and date.
+  \end{itemize}
+\end{enumerate}
+
+Through the above index settings, the most common business query paths
+can be significantly optimized, allowing the system to maintain good
+response times under high concurrent bookings and frequent queries.
+
+\subsection{Multi-layer Mechanism for Preventing Double
+Booking}\label{multi-layer-mechanism-for-preventing-double-booking}
+
+Preventing double booking is one of the core objectives of this system
+design. This design adopts a three-layer linkage of "structural
+constraints + transaction control + business logic" at the database
+level to ensure that facilities and equipment are not repeatedly
+allocated during the same time period.
+
+\subsubsection{Structural Layer: Unique Constraint on
+Reservation}\label{structural-layer-unique-constraint-on-reservation}
+
+Add the following unique constraint to the \texttt{Reservation} table:
+
+\begin{sql}
+ALTER TABLE Reservation
+ADD CONSTRAINT uq_facility_timeslot
+    UNIQUE (Facility_ID, Reservation_Date, Start_Time); 
+\end{sql}
+
+This constraint serves as a \textbf{first line of defense} at the database structural level. It prevents distinct records from starting at the exact same moment for the same facility. While it does not structurally prevent overlapping time intervals (e.g., 10:00--12:00 vs. 11:00--13:00), it ensures that no two reservations can have identical start times, simplifying the application-level conflict checks described below.
+
+In simple modeling, we use "start time" as the time granularity. To
+further prevent any time interval overlap (not just the same start
+time), time interval overlap check logic can be added at the
+application layer, executed within a transaction:
+
+\begin{sql}
+SELECT COUNT(*) AS cnt
+FROM Reservation
+WHERE Facility_ID = @facility_id
+  AND Reservation_Date = @reservation_date
+  AND NOT (@new_end_time <= Start_Time OR @new_start_time >= End_Time);
+\end{sql}
+
+If \texttt{cnt\ \textgreater{}\ 0}, it indicates there is a time
+interval overlap, and the creation of the new Reservation should be
+rejected.
+
+\subsubsection{Structural Layer: 1:1 Mapping of
+Booking}\label{structural-layer-11-mapping-of-booking}
+
+The primary key of \texttt{Booking} is \texttt{Reservation\_ID}:
+
+\begin{sql}
+PRIMARY KEY (Reservation_ID)
+FOREIGN KEY (Reservation_ID) REFERENCES Reservation(Reservation_ID)
+\end{sql}
+
+This brings two direct effects:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+
+\item
+  The same time period (same Reservation) can be "bound" by at most
+  one Booking instance, structurally avoiding the situation of "the
+  same time period being booked by multiple members simultaneously";
+\item
+  Other subclasses (such as \texttt{Training\_Session}) use the same
+  primary key pushdown method, preventing the same Reservation from
+  being reused by multiple subclasses with different semantics.
+\end{enumerate}
+
+\subsubsection{Structural Layer: Session\_Enrollment Prevents Duplicate
+Enrollment}\label{structural-layer-session_enrollment-prevents-duplicate-enrollment}
+
+\texttt{Session\_Enrollment} uses the composite primary key
+\texttt{(Reservation\_ID,\ Member\_ID)} to prevent members from
+repeatedly enrolling in the same course:
+
+\begin{sql}
+PRIMARY KEY (Reservation_ID, Member_ID)
+\end{sql}
+
+If a record with the same \texttt{(Reservation\_ID,\ Member\_ID)} is
+inserted, it violates the primary key constraint. Although this
+constraint does not belong to "facility double booking", it ensures
+the rationality of course enrollment business.
+
+\subsubsection{Business Logic Layer: Equipment Availability and
+Concurrency
+Control}\label{business-logic-layer-equipment-availability-and-concurrency-control}
+
+The "hidden conflict" of equipment comes from over-allocation of the
+same type of equipment during the same time period. Using
+\texttt{Reservation\_Equipments} and \texttt{Equipment.Total\_Quantity},
+when inserting or updating equipment allocation, the following check can
+be executed within a transaction:
+
+\begin{sql}
+START TRANSACTION;
+
+SELECT  e.Total_Quantity - IFNULL(SUM(re.Quantity), 0) AS Available
+FROM Equipment e
+LEFT JOIN Reservation_Equipments re
+       ON e.Equipment_ID = re.Equipment_ID
+      AND re.Reservation_ID IN (
+          -- Find Reservation_IDs that temporally overlap with the current request
+      )
+WHERE e.Equipment_ID = @equipment_id
+FOR UPDATE;
+
+-- If Available < @request_quantity, then ROLLBACK and return "insufficient equipment" error
+-- Otherwise, execute insert/update Reservation_Equipments and COMMIT
+\end{sql}
+
+By using \texttt{FOR\ UPDATE} to lock relevant rows, even in high
+concurrency environments, different transactions can be prevented from
+simultaneously reading "un-updated" available quantities, thereby
+avoiding over-allocation issues.
+
+\subsection{Rationality of Independent Maintenance
+Modeling}\label{rationality-of-independent-maintenance-modeling}
+
+Compared to modeling Maintenance as a Reservation subclass, this
+revision maintains consistency with the EERD description and has the
+following advantages:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \textbf{Clear Semantics and Separation of Concerns}\\ Maintenance
+  focuses on the maintenance process itself (planned date, completion
+  date, status, description, etc.), while Reservation focuses on time
+  periods and facility occupancy. The logical division of labor between
+  the two is clear.
+\item
+  \textbf{Conforms to EERD Description Structure}\\ Using
+  \texttt{Maintenance\_ID} as the primary key and establishing N:1
+  relationships with corresponding entities through
+  \texttt{Facility\_ID} / \texttt{Equipment\_ID} fully corresponds to
+  the \texttt{requires} relationship and cardinality settings in the
+  specification document.
+\item
+  \textbf{Good Extensibility}\\ If attributes such as maintenance cost,
+  third-party service providers, or responsible persons need to be added
+  later, only the Maintenance table needs to be extended without
+  affecting the Reservation structure on the timeline.
+\item
+  \textbf{Transaction-Level Consistency}\\ While logically separated, strict consistency is maintained via the transaction layer. Booking transactions explicitly lock and check the \texttt{Maintenance} table for overlaps before insertion, ensuring no facility is booked while under maintenance. This approach maintains the clean separation of concerns while ensuring operational integrity through rigorous transaction logic.
+\item
+  \textbf{Easy Auditing and Statistical Analysis}\\ Maintenance records
+  exist independently, suitable for direct use in statistical reports,
+  such as "annual maintenance count", "average maintenance
+  duration", "facility maintenance frequency ranking", etc.
+  Decoupling from booking records is more conducive to separate
+  analysis.
+\end{enumerate}
+
+\newpage
+\section{Access Control}\label{task-5-access-control}
+
+\subsection{User Roles and
+Responsibilities}\label{user-roles-and-responsibilities}
+
+In our implementation, database roles (DBA, MANAGER, BOOKING\_OFFICER, COACH,
+MEMBER) are mapped to application users stored in the \texttt{Staff},
+\texttt{Member}, \texttt{Student}, and \texttt{External\_Visitor} tables.
+Role-based access control (RBAC) is widely adopted for assigning permissions
+based on organizational roles. Modern studies, such as
+\citet{frank2013roleminingprobabilisticmodels}, further demonstrate how RBAC
+structures can be systematically derived and optimized from user–permission
+relationships.A staff member can, for example,
+be marked as "manager" or "front desk" in the application; at login,
+the corresponding database role is enabled for that user.
+
+Below we describe each logical role and its responsibilities in the
+sports complex system.
+
+\subsubsection{System Administrator
+(DBA)}\label{system-administrator-dba}
+
+The System Administrator is the technical person who manages the
+database platform.
+
+Main responsibilities:
+
+\begin{itemize}
+
+\item
+  Create and disable database accounts, assign roles, and reset
+  passwords.
+\item
+  Manage the physical database objects (tables, indexes, views),
+  backups, and recovery.
+\item
+  Perform data correction only when formally requested and authorised by
+  management.
+\end{itemize}
+
+From a security perspective, the DBA can run any SQL command,
+but in normal operations the DBA focuses on availability, performance,
+and integrity rather than on day‑to‑day business data entry or
+approvals.
+
+\subsubsection{Sports Complex Manager}\label{sports-complex-manager}
+
+The Sports Complex Manager is responsible for the overall operation of
+the sports complex and for higher‑level business decisions.
+
+Main responsibilities:
+
+\begin{itemize}
+
+\item
+  Maintain core reference data such as \texttt{Facility} and
+  \texttt{Equipment} (e.g.~names, capacities, availability status).
+\item
+  Define and maintain \texttt{Training\_Session} records, including
+  assigned coach, schedule, capacity, and prerequisites.
+\item
+  Review maintenance history and approve completion of maintenance jobs.
+\item
+  Review conflicts between reservations and ensure that important events
+  (e.g.~tournaments) are scheduled correctly.
+\item
+  Approve or reject \texttt{Visitor\_Application} records for
+  external visitors.
+\end{itemize}
+
+The Manager therefore needs broad read access over the operational data
+and the ability to update key business objects. However, the Manager
+generally does not hard‑delete business records (such as
+\texttt{Member} or \texttt{Facility}) so that history is preserved;
+instead, status fields (e.g.~\texttt{Active/Inactive}) are used.
+
+\subsubsection{Front Desk / Booking
+Officer}\label{front-desk-booking-officer}
+
+Front desk staff handle most of the daily interactions with members and
+visitors.
+
+Main responsibilities:
+
+\begin{itemize}
+
+\item
+  Register new members and assist them in updating their profiles.
+\item
+  Help members make, modify, and cancel bookings and session enrolments
+  (walk‑in or phone requests).
+\item
+  Record maintenance requests on behalf of members or staff, linking
+  them to the relevant facility/equipment.
+\item
+  Answer enquiries about facility availability, upcoming sessions, and
+  existing bookings.
+\end{itemize}
+
+Operationally, the Booking Officer needs read/write access to day‑to‑day
+transaction tables such as \texttt{Booking},
+\texttt{Session\_Enrollment}, and \texttt{Maintenance}, but cannot
+change high‑level configuration such as facility capacity or approve
+external visitor applications. That separation reduces the risk of
+accidental or unauthorised changes to critical data.
+
+\subsubsection{Coach}\label{coach}
+
+Coaches are staff members responsible for delivering training sessions.
+
+Main responsibilities:
+
+\begin{itemize}
+
+\item
+  View their own \texttt{Training\_Session} schedule and session
+  details.
+\item
+  View the list of enrolled members for their sessions
+  (\texttt{Session\_Enrollment}).
+\item
+  Record attendance, remarks, or simple outcome indicators for
+  participants in their own sessions.
+\end{itemize}
+
+Coaches do not create or delete training sessions. They also
+cannot see all member information; their access is restricted to members
+who are enrolled in sessions that they teach.
+
+\subsubsection{Member (Student / Staff / External
+Visitor)}\label{member-student-staff-external-visitor}
+
+A Member is any person allowed to use the sports complex: internal
+students, internal staff, and approved external visitors. All three
+subtypes share the same high‑level behaviour with minor differences in
+attributes.
+
+Main responsibilities:
+
+\begin{itemize}
+
+\item
+  Maintain their own personal details (contact information, emergency
+  contact, etc.).
+\item
+  Browse the list of facilities, equipment, and training sessions.
+\item
+  Make, modify, and cancel their own bookings, subject to business rules
+  (time limits, clashes, etc.).
+\item
+  Enrol in and withdraw from training sessions, again limited to their
+  own records.
+\end{itemize}
+
+Members never directly modify data that belongs to other members or to
+the sports complex configuration. Access is restricted to "own" data
+(for example, own bookings and enrolments) using row‑level security.
+
+\subsection{Access Types for Each
+Table}\label{access-types-for-each-table}
+
+We classify access as:
+
+\begin{itemize}
+
+\item
+  \textbf{R} -- Read (SELECT)
+\item
+  \textbf{I} -- Insert (CREATE new row)
+\item
+  \textbf{U} -- Update (modify existing row)
+\item
+  \textbf{D} -- Delete
+\end{itemize}
+
+A star \texttt{*} indicates that the access is limited to the
+user's own rows, enforced by predicates on \texttt{Member\_ID} (or the
+equivalent foreign key). A double star \texttt{**} indicates access
+restricted to rows related to the coach's own sessions (for
+example, enrolments in sessions they teach).
+
+The correctness of such permission assignments is essential, and recent work has
+shown that access-control policies can be formally analyzed and verified to
+avoid misconfigurations \citep{gouglidis2023modelcheckingaccesscontrol}.
+
+\subsubsection{Identity and Contact
+Tables}\label{identity-and-contact-tables}
+
+These tables store member and coach identities and their contact
+details.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Table & DBA & Manager & Booking Officer & Coach & Member \\
+\midrule
+Member & R/I/U/D & R/I/U & R/I/U & R & R/U* \\
+Student & R/I/U/D & R/I/U & R/I/U & R & R/U* \\
+Staff & R/I/U/D & R/I/U & R/I/U & R & R/U* \\
+External\_Visitor & R/I/U/D & R/I/U & R/I/U & R & R/U* \\
+Coach & R/I/U/D & R/I/U & R & R/I/U* & R \\
+Member\_Phone & R/I/U/D & R/I/U & R/I/U & R & R/I/U* \\
+Member\_Email & R/I/U/D & R/I/U & R/I/U & R & R/I/U* \\
+Coach\_Phone & R/I/U/D & R/I/U & R & R/I/U* & R \\
+Coach\_Email & R/I/U/D & R/I/U & R & R/I/U* & R \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Rationale:
+
+\begin{itemize}
+
+\item
+  The DBA has full control for administrative and recovery purposes.
+\item
+  The Manager can maintain staff and member data but avoids hard deletes
+  in normal practice.
+\item
+  Booking Officers need to create and update member
+  records when assisting people at the front desk. They have unrestricted
+  read, insert, and update access to member-related tables because their
+  primary job is to help \emph{any} member with registration, profile
+  updates, and booking management. Application-level logic (e.g., audit logs,
+  transaction context) ensures that these operations are performed only in
+  legitimate service scenarios.
+\item
+  Each Member can read and update only their own profile and
+  contact details, enforced via predicates such as
+  \texttt{Member\_ID\ =\ CURRENT\_USER} (or an equivalent context
+  mechanism).
+\item
+  Coaches maintain only their own identity and contact details in these
+  tables. When they need to contact participants, the application
+  exposes filtered views that show minimal member contact information
+  only for participants enrolled in their sessions, not for all members
+  in the system.
+\end{itemize}
+
+Row‑level security for the \texttt{*} and \texttt{**} restrictions will
+be implemented using views or fine‑grained access predicates (see
+example below).
+
+\subsubsection{Facility, Equipment, and Maintenance
+Tables}\label{facility-equipment-and-maintenance-tables}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Table & DBA & Manager & Booking Officer & Coach & Member \\
+\midrule
+Facility & R/I/U/D & R/I/U & R & R & R \\
+Equipment & R/I/U/D & R/I/U & R & R & R \\
+Maintenance & R/I/U/D & R/I/U & R/I/U & R & R \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Rationale:
+
+\begin{itemize}
+
+\item
+  \texttt{Facility} and \texttt{Equipment} define the core resources of
+  the sports complex. They are therefore maintained by the Manager;
+  other roles have read‑only access.
+\item
+  \texttt{Maintenance} records may be created either by the Manager or
+  by the Booking Officer when a member reports a problem. In practice,
+  application logic or column‑level controls ensure that only
+  the manager can set a job to completed
+  (e.g.~\texttt{Status\ =\ \textquotesingle{}Completed\textquotesingle{}}
+  and \texttt{Completion\_Date}), while Booking Officers can update
+  descriptive fields such as problem description or notes.
+\item
+  Members and Coaches can read maintenance information to understand why
+  a resource is unavailable, but cannot create or alter maintenance
+  records.
+\end{itemize}
+
+\subsubsection{Reservation, Booking, and Training
+Tables}\label{reservation-booking-and-training-tables}
+
+The conceptual model treats \texttt{Reservation} as a supertype of
+\texttt{Booking} and \texttt{Training\_Session}. In practice, end users
+mainly interact with higher‑level entities through application views;
+direct access to the base \texttt{Reservation} table is mostly required
+for administrative purposes.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Table & DBA & Manager & Booking Officer & Coach & Member \\
+\midrule
+Reservation & R/I/U/D & R/U & R/I/U & R** & R* \\
+Booking & R/I/U/D & R/U & R/I/U & R** & R/I/U* \\
+Training\_Session & R/I/U/D & R/I/U/D & R & R/U** & R \\
+Reservation\_Equipments & R/I/U/D & R/I/U & R/I/U & R** & R* \\
+Session\_Enrollment & R/I/U/D & R/U & R/I/U & R/U** & R/I/U* \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Rationale:
+
+\begin{itemize}
+\item
+  \textbf{Member}:
+
+  \begin{itemize}
+  
+  \item
+    Can create, update, and cancel their own \texttt{Booking} and
+    \texttt{Session\_Enrollment} records (\texttt{*}).
+  \item
+    Has read‑only access to their underlying \texttt{Reservation}
+    records, normally via views rather than direct table access.
+  \item
+    Can view the equipment associated with their own reservations via
+    application views over \texttt{Reservation\_Equipments}, but cannot
+    directly insert, update, or delete rows in that table.
+  \end{itemize}
+\item
+  \textbf{Booking Officer}:
+
+  \begin{itemize}
+  
+  \item
+    Handles creation, modification, and cancellation of \texttt{Booking}
+    and \texttt{Session\_Enrollment} for any member.
+  \item
+    Can also create or adjust \texttt{Reservation} and
+    \texttt{Reservation\_Equipments} entries to support bookings and
+    training sessions.
+  \end{itemize}
+\item
+  \textbf{Manager}:
+
+  \begin{itemize}
+  
+  \item
+    Oversees overall scheduling and therefore needs read and update
+    rights on \texttt{Reservation}, \texttt{Booking}, and
+    \texttt{Session\_Enrollment} to resolve conflicts or correct errors.
+  \item
+    Has full control over \texttt{Training\_Session} (create, update,
+    and, in exceptional cases, delete), including assigning coaches and
+    setting capacities.
+  \end{itemize}
+\item
+  \textbf{Coach}:
+
+  \begin{itemize}
+  
+  \item
+    Can read all relevant reservation and booking details for
+    their own sessions only (\texttt{**}).
+  \item
+    Can update their own \texttt{Training\_Session} details where
+    permitted (e.g.~remarks, minor time adjustments approved by the
+    Manager) and record attendance or notes in
+    \texttt{Session\_Enrollment} for participants in their sessions.
+  \end{itemize}
+\end{itemize}
+
+In an actual DBMS implementation, most of the member‑facing operations
+would be performed through views such as \texttt{Member\_Booking} and
+\texttt{Member\_Session\_Enrollment}, which already filter rows by
+\texttt{Member\_ID} and prevent access to other members' data.
+
+\subsubsection{Visitor Application
+Management}\label{visitor-application-management}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Table & DBA & Manager & Booking Officer & Coach & Member \\
+\midrule
+Visitor\_Application & R/I/U/D & R/I/U & R/I & R & -- \\
+Visitor\_Application\_Phone & R/I/U/D & R/I/U & R/I & R & -- \\
+Visitor\_Application\_Email & R/I/U/D & R/I/U & R/I & R & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Rationale:
+
+\begin{itemize}
+
+\item
+  Prospective visitors (not yet members) submit applications, typically
+  through the front desk or an online form. Booking Officers can create
+  and insert \texttt{Visitor\_Application} records on behalf of walk-in
+  applicants.
+\item
+  The Manager reviews applications, updates their status
+  (e.g.~\texttt{Pending}, \texttt{Approved}, \texttt{Rejected}), and
+  records approval details. Upon approval, the Manager creates
+  corresponding \texttt{Member} and \texttt{External\_Visitor} records
+  and updates the \texttt{Created\_Member\_ID} field for traceability.
+\item
+  Members do not have access to \texttt{Visitor\_Application} tables
+  because these records represent people who are not yet in the system.
+  Once an application is approved and a \texttt{Member} record is created,
+  the applicant gains member privileges.
+\item
+  Hard deletes are avoided in normal operations to keep an audit trail
+  of all applications.
+\end{itemize}
+
+\subsection{Example SQL Implementation (Roles, Grants, and
+Views)}\label{example-sql-implementation-roles-grants-and-views}
+
+Below is a simplified example of how this access control model could be
+implemented in SQL. Exact syntax may vary between DBMSs.
+
+\begin{sql}
+-- Create roles
+CREATE ROLE dba_role;              -- mapped to the real DBA account
+CREATE ROLE manager_role;          -- sports complex manager
+CREATE ROLE booking_officer_role;  -- front desk staff
+CREATE ROLE coach_role;            -- coaches
+CREATE ROLE member_role;           -- regular members
+
+-- Example: grant privileges on Booking
+GRANT SELECT, INSERT, UPDATE, DELETE ON Booking TO dba_role;
+GRANT SELECT, UPDATE ON Booking TO manager_role;
+GRANT SELECT, INSERT, UPDATE ON Booking TO booking_officer_role;
+
+-- Member should only see and modify their own bookings.
+-- We create a view that filters on MEMBER_ID and only expose the view to the member_role.
+
+CREATE VIEW Member_Booking AS
+SELECT b.*
+FROM Booking b
+JOIN Member m ON b.Member_ID = m.Member_ID
+WHERE m.Member_ID = CURRENT_USER;  -- or another context function depending on DBMS
+
+GRANT SELECT, INSERT, UPDATE ON Member_Booking TO member_role;
+REVOKE ALL ON Booking FROM member_role;
+
+-- Similarly, we can define a view for coaches to see enrolments only in their own sessions.
+
+CREATE VIEW Coach_Session_Enrollment AS
+SELECT se.*
+FROM Session_Enrollment se
+JOIN Training_Session ts ON se.Reservation_ID = ts.Reservation_ID
+JOIN Coach c ON ts.Coach_ID = c.Coach_ID
+WHERE c.Coach_ID = CURRENT_USER;  -- or another context function depending on DBMS
+
+GRANT SELECT, UPDATE ON Coach_Session_Enrollment TO coach_role;
+REVOKE ALL ON Session_Enrollment FROM coach_role;
+\end{sql}
+
+In a real deployment we would also use schemas, additional views, or
+fine‑grained access control mechanisms (depending on the DBMS) to
+enforce the \texttt{*} and \texttt{**} row‑level restrictions
+consistently across all tables.
+
+\subsection{Security Principles
+Demonstrated}\label{security-principles-demonstrated}
+
+This design implements several core data security principles:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \textbf{Least privilege}\\ Each role receives only the permissions
+  necessary for its duties. For example, members can modify only their
+  own bookings and profiles; coaches can see only the enrolments for
+  sessions they teach; booking officers cannot change facility capacity
+  or approve applications.
+\item
+  \textbf{Separation of duties}\\ Sensitive actions such as approving
+  external visitor registrations or marking maintenance as completed are
+  reserved for the Manager. Front desk staff can collect and record data
+  but cannot finalise approvals or override important business rules.
+\item
+  \textbf{Data privacy}\\ Personal data is protected via row‑level
+  restrictions and dedicated views. Members see only their own identity,
+  contact details, bookings, and applications. Coaches see limited
+  information about participants in their sessions, and not about all
+  members in the system.
+\item
+  \textbf{Auditability and integrity}\\ Instead of deleting key business
+  records, we generally mark them as cancelled, inactive, or completed
+  using status attributes. Physical deletion is reserved for the DBA in
+  exceptional cases (e.g.~test data or legal requirements). This keeps a
+  reliable audit trail of all important operations (bookings,
+  maintenance, applications, etc.).
+\end{enumerate}
+
+Overall, this role‑based access control (RBAC) design is consistent with
+our EERD and supports the daily workflow of the sports complex while
+providing a reasonable level of security, privacy, and maintainability.
+
+\section{Database Integrity}\label{task-6-integrity-constraints}
+
+This section explains how entity integrity, referential integrity, and
+domain integrity are enforced in our logical design. We link each type
+of integrity to the tables and attributes generated from the EERD.
+
+\subsection{Entity Integrity}\label{entity-integrity}
+
+Entity integrity ensures that every row in a table can be uniquely
+identified and that primary key attributes are never \texttt{NULL}.
+
+\subsubsection{Strong Entities and Primary
+Keys}\label{strong-entities-and-primary-keys}
+
+Each strong entity in the EERD becomes a base table with a single,
+non-null primary key:
+
+\begin{itemize}
+
+\item
+  \texttt{Member(Member\_ID,\ ...)} with
+  \texttt{Member\_ID\ INT\ PRIMARY\ KEY\ NOT\ NULL}
+\item
+  \texttt{Coach(Coach\_ID,\ ...)} with
+  \texttt{Coach\_ID\ INT\ PRIMARY\ KEY\ NOT\ NULL}
+\item
+  \texttt{Facility(Facility\_ID,\ ...)} with
+  \texttt{Facility\_ID\ INT\ PRIMARY\ KEY\ NOT\ NULL}
+\item
+  \texttt{Equipment(Equipment\_ID,\ ...)} with
+  \texttt{Equipment\_ID\ INT\ PRIMARY\ KEY\ NOT\ NULL}
+\item
+  \texttt{Reservation(Reservation\_ID,\ ...)} with
+  \texttt{Reservation\_ID\ INT\ PRIMARY\ KEY\ NOT\ NULL}
+\item
+  \texttt{Maintenance(Maintenance\_ID,\ ...)} with
+  \texttt{Maintenance\_ID\ INT\ PRIMARY\ KEY\ NOT\ NULL}
+\item
+  \texttt{Visitor\_Application(Application\_ID,\ ...)} with
+  \texttt{Application\_ID\ INT\ PRIMARY\ KEY\ NOT\ NULL}
+\end{itemize}
+
+These primary keys uniquely identify each row and are defined as
+\texttt{NOT\ NULL}, so no row can exist without an identifier.
+
+\subsubsection{Supertype--Subtype Structure and Key
+Inheritance}\label{supertypesubtype-structure-and-key-inheritance}
+
+\texttt{Member} is a supertype with three disjoint subtypes:
+\texttt{Student}, \texttt{Staff}, and \texttt{External\_Visitor}. Each
+subtype table uses the same primary key as \texttt{Member} to preserve
+the 1:1 relationship between a member and its subtype specialization:
+
+\begin{sql}
+CREATE TABLE Member (
+    Member_ID INT PRIMARY KEY,
+    Membership_Status VARCHAR(20) NOT NULL,
+    -- other attributes...
+);
+
+CREATE TABLE Student (
+    Member_ID  INT PRIMARY KEY,
+    Student_ID VARCHAR(20) NOT NULL UNIQUE,
+    -- other attributes...
+    FOREIGN KEY (Member_ID) REFERENCES Member(Member_ID)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE Staff (
+    Member_ID INT PRIMARY KEY,
+    Staff_ID  VARCHAR(20) NOT NULL UNIQUE,
+    -- other attributes...
+    FOREIGN KEY (Member_ID) REFERENCES Member(Member_ID)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE External_Visitor (
+    Member_ID  INT PRIMARY KEY,
+    IC_Number  VARCHAR(30) NOT NULL UNIQUE,
+    -- other attributes...
+    FOREIGN KEY (Member_ID) REFERENCES Member(Member_ID)
+        ON DELETE CASCADE
+);
+\end{sql}
+
+Here, entity integrity is maintained because:
+
+\begin{itemize}
+
+\item
+  Each subtype row has exactly one \texttt{Member\_ID} that is non-null
+  and unique.
+\item
+  \texttt{Student\_ID}, \texttt{Staff\_ID}, and \texttt{IC\_Number} are
+  declared \texttt{UNIQUE}, so they also behave as candidate keys within
+  their respective tables, preventing two students from sharing the same
+  student ID, etc.
+\end{itemize}
+
+\subsubsection{Weak Entities and Composite Primary
+Keys}\label{weak-entities-and-composite-primary-keys}
+
+Some tables represent relationship entities that depend on other
+entities and use composite primary keys to ensure uniqueness:
+
+\begin{sql}
+CREATE TABLE Reservation_Equipments (
+    Reservation_ID INT NOT NULL,
+    Equipment_ID   INT NOT NULL,
+    Quantity       INT NOT NULL,
+    PRIMARY KEY (Reservation_ID, Equipment_ID)
+);
+
+CREATE TABLE Session_Enrollment (
+    Reservation_ID INT NOT NULL,
+    Member_ID      INT NOT NULL,
+    PRIMARY KEY (Reservation_ID, Member_ID)
+);
+
+CREATE TABLE Member_Phone (
+    Member_ID     INT NOT NULL,
+    Phone_Number  VARCHAR(20) NOT NULL,
+    PRIMARY KEY (Member_ID, Phone_Number)
+);
+\end{sql}
+
+\begin{itemize}
+
+\item
+  In \texttt{Reservation\_Equipments}, the composite primary key
+  prevents the same equipment from being listed twice for the same
+  reservation.
+\item
+  In \texttt{Session\_Enrollment}, it prevents the same member from
+  being enrolled multiple times in the same training session.
+\item
+  In \texttt{Member\_Phone}, it prevents duplicate phone numbers for the
+  same member.
+\end{itemize}
+
+In all cases, the composite key columns are defined as
+\texttt{NOT\ NULL}, maintaining entity integrity for these relationship
+entities.
+
+\subsection{Referential Integrity}\label{referential-integrity}
+
+Referential integrity ensures that foreign key values always refer to existing
+rows in the parent table and that deletions/updates do not create orphan
+records. The formal reasoning behind referential integrity and its implications
+across relational schemas has been extensively analyzed in recent work \citep{Kenig_2022}.
+
+\subsubsection{Supertype--Subtype Foreign
+Keys}\label{supertypesubtype-foreign-keys}
+
+Each subtype references \texttt{Member} using a foreign key with
+cascading delete:
+
+\begin{sql}
+ALTER TABLE Student
+ADD CONSTRAINT fk_student_member
+FOREIGN KEY (Member_ID)
+REFERENCES Member(Member_ID)
+ON DELETE CASCADE;
+
+ALTER TABLE Staff
+ADD CONSTRAINT fk_staff_member
+FOREIGN KEY (Member_ID)
+REFERENCES Member(Member_ID)
+ON DELETE CASCADE;
+
+ALTER TABLE External_Visitor
+ADD CONSTRAINT fk_external_member
+FOREIGN KEY (Member_ID)
+REFERENCES Member(Member_ID)
+ON DELETE CASCADE;
+\end{sql}
+
+\begin{itemize}
+
+\item
+  A row in \texttt{Student}, \texttt{Staff}, or
+  \texttt{External\_Visitor} cannot exist without a corresponding
+  \texttt{Member}.
+\item
+  When a \texttt{Member} is deleted, the related subtype row is
+  automatically removed to avoid orphaned subtype records.
+\end{itemize}
+
+\subsubsection{Reservations, Bookings, and
+Members/Facilities}\label{reservations-bookings-and-membersfacilities}
+
+In the logical design, \texttt{Reservation} is a supertype for specific
+reservation types such as \texttt{Booking} and
+\texttt{Training\_Session}. Normal facility bookings are stored in
+\texttt{Booking} and linked back to members and facilities as follows:
+
+\begin{sql}
+CREATE TABLE Reservation (
+    Reservation_ID   INT PRIMARY KEY,
+    Facility_ID      INT NOT NULL,
+    Reservation_Date DATE NOT NULL,
+    Start_Time       TIME NOT NULL,
+    End_Time         TIME NOT NULL,
+    FOREIGN KEY (Facility_ID) REFERENCES Facility(Facility_ID)
+);
+
+CREATE TABLE Booking (
+    Reservation_ID  INT PRIMARY KEY,
+    Member_ID       INT NOT NULL,
+    Booking_Status  VARCHAR(20) NOT NULL,
+    FOREIGN KEY (Reservation_ID) REFERENCES Reservation(Reservation_ID)
+        ON DELETE CASCADE,
+    FOREIGN KEY (Member_ID) REFERENCES Member(Member_ID)
+);
+\end{sql}
+
+This ensures that:
+
+\begin{itemize}
+
+\item
+  Every booking row corresponds to exactly one generic reservation, which
+  already includes the facility and time slot information.
+\item
+  A booking cannot reference a non-existing member.
+\item
+  The facility association is managed at the \texttt{Reservation} level,
+  ensuring that both \texttt{Booking} and \texttt{Training\_Session} 
+  (which also inherits from \texttt{Reservation}) can utilize facilities
+  consistently.
+\item
+  Deleting a reservation cascades to delete its associated booking,
+  preventing orphan bookings.
+\end{itemize}
+
+\subsubsection{Training Sessions and
+Coaches}\label{training-sessions-and-coaches}
+
+Training sessions are another specialization of \texttt{Reservation} and
+are taught by exactly one coach:
+
+\begin{sql}
+CREATE TABLE Training_Session (
+    Reservation_ID INT PRIMARY KEY,
+    Coach_ID       INT NOT NULL,
+    Max_Capacity   INT NOT NULL,
+    FOREIGN KEY (Reservation_ID) REFERENCES Reservation(Reservation_ID)
+        ON DELETE CASCADE,
+    FOREIGN KEY (Coach_ID) REFERENCES Coach(Coach_ID)
+        ON DELETE RESTRICT
+);
+\end{sql}
+
+Referential integrity here ensures that:
+
+\begin{itemize}
+
+\item
+  A training session cannot exist unless its base \texttt{Reservation}
+  exists.
+\item
+  Each session must be linked to a valid \texttt{Coach}.
+\item
+  The \texttt{ON\ DELETE\ RESTRICT} on \texttt{Coach} prevents deleting
+  a coach while there are still sessions assigned to them, unless
+  handled explicitly by the application or by reassigning the sessions.
+\end{itemize}
+
+\subsubsection{Equipment Assignments to
+Reservations}\label{equipment-assignments-to-reservations}
+
+The \texttt{Reservation\_Equipments} table connects reservations and
+equipment:
+
+\begin{sql}
+ALTER TABLE Reservation_Equipments
+ADD CONSTRAINT fk_res_eq_reservation
+FOREIGN KEY (Reservation_ID)
+REFERENCES Reservation(Reservation_ID)
+ON DELETE CASCADE;
+
+ALTER TABLE Reservation_Equipments
+ADD CONSTRAINT fk_res_eq_equipment
+FOREIGN KEY (Equipment_ID)
+REFERENCES Equipment(Equipment_ID)
+ON DELETE RESTRICT;
+\end{sql}
+
+\begin{itemize}
+
+\item
+  A row in \texttt{Reservation\_Equipments} cannot exist without both a
+  valid \texttt{Reservation} and a valid \texttt{Equipment}.
+\item
+  If a reservation is deleted, its assigned equipment rows are also
+  deleted.
+\end{itemize}
+
+\subsubsection{Session Enrollments}\label{session-enrollments}
+
+\texttt{Session\_Enrollment} links members to training sessions:
+
+\begin{sql}
+ALTER TABLE Session_Enrollment
+ADD CONSTRAINT fk_enrollment_reservation
+FOREIGN KEY (Reservation_ID)
+REFERENCES Training_Session(Reservation_ID)
+ON DELETE CASCADE;
+
+ALTER TABLE Session_Enrollment
+ADD CONSTRAINT fk_enrollment_member
+FOREIGN KEY (Member_ID)
+REFERENCES Member(Member_ID)
+ON DELETE RESTRICT;
+\end{sql}
+
+This guarantees that:
+
+\begin{itemize}
+
+\item
+  Enrollments only exist for valid training sessions and members.
+\item
+  When a training session is deleted, related enrollments are removed
+  automatically.
+\end{itemize}
+
+\subsubsection{Maintenance and Maintained
+Resources}\label{maintenance-and-maintained-resources}
+
+Each maintenance record applies either to a facility or to an equipment
+item. We enforce referential integrity via optional foreign keys:
+
+\begin{sql}
+CREATE TABLE Maintenance (
+    Maintenance_ID INT PRIMARY KEY,
+    Equipment_ID   INT NULL,
+    Facility_ID    INT NULL,
+    Status         VARCHAR(20) NOT NULL,
+    -- other attributes...
+    -- Note: Each record represents maintenance of ONE equipment instance or facility.
+    -- Multiple equipment items require multiple maintenance records.
+    FOREIGN KEY (Equipment_ID) REFERENCES Equipment(Equipment_ID)
+        ON DELETE RESTRICT,
+    FOREIGN KEY (Facility_ID) REFERENCES Facility(Facility_ID)
+        ON DELETE RESTRICT,
+    CHECK (
+        (Equipment_ID IS NOT NULL AND Facility_ID IS NULL) OR
+        (Equipment_ID IS NULL AND Facility_ID IS NOT NULL)
+    )
+);
+\end{sql}
+
+\begin{itemize}
+
+\item
+  A maintenance record must point to exactly one existing equipment or
+  facility.
+\item
+  The XOR \texttt{CHECK} constraint (discussed again in domain
+  integrity) guarantees that both foreign keys cannot be set
+  simultaneously or both be \texttt{NULL}.
+\end{itemize}
+
+\subsubsection{Visitor Applications}\label{visitor-applications}
+
+\texttt{Visitor\_Application} records are created by prospective visitors
+who are not yet members of the system:
+
+\begin{sql}
+CREATE TABLE Visitor_Application (
+    Application_ID   INT PRIMARY KEY,
+    First_Name       VARCHAR(50) NOT NULL,
+    Last_Name        VARCHAR(50) NOT NULL,
+    IC_Number        VARCHAR(20) NOT NULL UNIQUE,
+    Application_Date DATE NOT NULL,
+    Status           VARCHAR(20) NOT NULL,
+    Approved_By      INT NULL,
+    Approval_Date    DATE NULL,
+    Reject_Reason    TEXT NULL,
+    Created_Member_ID INT NULL,
+    FOREIGN KEY (Approved_By) REFERENCES Staff(Member_ID)
+        ON DELETE SET NULL,
+    FOREIGN KEY (Created_Member_ID) REFERENCES Member(Member_ID)
+        ON DELETE SET NULL
+);
+\end{sql}
+
+\begin{itemize}
+\item
+  The applicant's basic information (\texttt{First\_Name},
+  \texttt{Last\_Name}, \texttt{IC\_Number}) is stored directly in this
+  table. At the time of application submission, the applicant is not yet
+  a \texttt{Member}.
+\item
+  \texttt{IC\_Number} is marked as \texttt{UNIQUE} to prevent duplicate
+  applications from the same person.
+\item
+  The \texttt{Approved\_By} field references \texttt{Staff} to track which
+  staff member processed the application. If the staff member is deleted,
+  \texttt{Approved\_By} is set to \texttt{NULL} to preserve the application
+  history.
+\item
+  \texttt{Created\_Member\_ID} links to the \texttt{Member} record created
+  after approval. For pending or rejected applications, this field is
+  \texttt{NULL}. Upon approval, the staff creates a new \texttt{Member}
+  and \texttt{External\_Visitor} record, then updates this field to
+  establish the traceability link. If the member record is later deleted,
+  this field is set to \texttt{NULL}, but the application record is preserved
+  for audit purposes.
+\end{itemize}
+
+\subsubsection{Visitor Application Contact Details}
+
+The multi-valued contact information is stored in separate weak entity tables:
+
+\begin{sql}
+CREATE TABLE Visitor_Application_Phone (
+    Application_ID INT NOT NULL,
+    Phone_Number   VARCHAR(20) NOT NULL,
+    PRIMARY KEY (Application_ID, Phone_Number),
+    FOREIGN KEY (Application_ID) REFERENCES Visitor_Application(Application_ID)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE Visitor_Application_Email (
+    Application_ID  INT NOT NULL,
+    Email_Address   VARCHAR(100) NOT NULL,
+    PRIMARY KEY (Application_ID, Email_Address),
+    FOREIGN KEY (Application_ID) REFERENCES Visitor_Application(Application_ID)
+        ON DELETE CASCADE
+);
+\end{sql}
+
+These tables allow each application to have multiple phone numbers and email
+addresses. The composite primary keys prevent duplicate entries for the same
+application. When an application is deleted, its contact details are
+automatically removed via \texttt{ON DELETE CASCADE}.
+
+\subsubsection{Member Phone Numbers}\label{member-phone-numbers}
+
+Finally, \texttt{Member\_Phone} enforces referential integrity to
+\texttt{Member}:
+
+\begin{sql}
+ALTER TABLE Member_Phone
+ADD CONSTRAINT fk_phone_member
+FOREIGN KEY (Member_ID)
+REFERENCES Member(Member_ID)
+ON DELETE CASCADE;
+\end{sql}
+
+This prevents phone numbers from being associated with non-existing
+members and automatically cleans up phone records when a member is
+deleted.
+
+\subsection{Domain Integrity}\label{domain-integrity}
+
+Domain integrity restricts the values that can be stored in each column
+through data types, length limits, and \texttt{CHECK} constraints.
+
+\subsubsection{Data Types and Length
+Constraints}\label{data-types-and-length-constraints}
+
+We choose SQL data types that reflect the meaning of each attribute:
+
+\begin{itemize}
+
+\item
+  \texttt{DATE}, \texttt{TIME}, \texttt{DATETIME} for temporal
+  attributes such as reservation start/end time and maintenance dates.
+\item
+  \texttt{INT} for identifiers, quantities, and capacities.
+\item
+  \texttt{VARCHAR(n)} for names, phone numbers, and descriptive fields,
+  with reasonable length limits (e.g., \texttt{VARCHAR(50)} for names,
+  \texttt{VARCHAR(20)} for phone numbers) to prevent excessively long
+  inputs.
+\end{itemize}
+
+Example:
+
+\begin{sql}
+CREATE TABLE Facility (
+    Facility_ID   INT PRIMARY KEY,
+    Facility_Name VARCHAR(100) NOT NULL,
+    Capacity      INT NOT NULL,
+    Status        VARCHAR(20) NOT NULL
+);
+\end{sql}
+
+\subsubsection{Enumerated Status Values}\label{enumerated-status-values}
+
+Several attributes are restricted to predefined sets of values using
+\texttt{CHECK} constraints:
+
+\begin{sql}
+ALTER TABLE Member
+ADD CONSTRAINT chk_member_status
+CHECK (Membership_Status IN ('Active', 'Inactive', 'Pending_Approval'));
+
+ALTER TABLE Booking
+ADD CONSTRAINT chk_booking_status
+CHECK (Booking_Status IN ('Pending', 'Confirmed', 'Cancelled'));
+
+ALTER TABLE Facility
+ADD CONSTRAINT chk_facility_status
+CHECK (Status IN ('Available', 'Under_Maintenance', 'Unavailable'));
+
+ALTER TABLE Equipment
+ADD CONSTRAINT chk_equipment_status
+CHECK (Status IN ('Available', 'In_Use', 'Under_Maintenance', 'Damaged'));
+
+ALTER TABLE Maintenance
+ADD CONSTRAINT chk_maintenance_status
+CHECK (Status IN ('Scheduled', 'In_Progress', 'Completed', 'Cancelled'));
+
+ALTER TABLE Visitor_Application
+ADD CONSTRAINT chk_application_status
+CHECK (Status IN ('Pending', 'Approved', 'Rejected'));
+\end{sql}
+
+These constraints ensure that status columns only store meaningful,
+valid values consistent with the business rules.
+
+\subsubsection{Numeric ranges and inventory
+consistency}\label{numeric-ranges-and-inventory-consistency}
+
+Numeric attributes are constrained to realistic ranges:
+
+\begin{sql}
+ALTER TABLE Facility
+ADD CONSTRAINT chk_facility_capacity
+CHECK (Capacity > 0);
+
+ALTER TABLE Equipment
+ADD CONSTRAINT chk_equipment_quantity
+CHECK (Total_Quantity >= 0);
+
+-- Note: Available_Quantity is a derived attribute (not stored in the table),
+-- so no constraint is defined for it. It is calculated dynamically as:
+-- Total_Quantity - (quantity in active reservations + count of active maintenance records)
+
+ALTER TABLE Reservation_Equipments
+ADD CONSTRAINT chk_res_eq_quantity
+CHECK (Quantity > 0);
+\end{sql}
+
+This prevents negative capacities or quantities, and ensures that
+available equipment does not exceed the total quantity.
+
+\subsubsection{Temporal Consistency}\label{temporal-consistency}
+
+We enforce logical ordering of time-related attributes. For example, a
+reservation must end after it starts:
+
+\begin{sql}
+ALTER TABLE Reservation
+ADD CONSTRAINT chk_reservation_time
+CHECK (Start_Time < End_Time);
+\end{sql}
+
+Optionally, we may also restrict new reservations so that they are not
+created in the past:
+
+\begin{sql}
+-- Optional constraint, depending on operational policy
+-- Note: Since we use DATE + TIME separation, we check the date component
+ALTER TABLE Reservation
+ADD CONSTRAINT chk_reservation_date_not_past
+CHECK (Reservation_Date >= CURDATE());
+
+-- For same-day reservations, time validation would need to be done
+-- at the application layer, as:
+-- CHECK ((Reservation_Date > CURDATE()) OR 
+--        (Reservation_Date = CURDATE() AND Start_Time >= CURTIME()))
+-- This complex check is better handled in application logic
+\end{sql}
+
+\subsubsection{Business Rule Constraints}\label{business-rule-constraints}
+
+Based on the assumptions defined in \cref{assumptions}, we enforce the following
+business rules at the database level where feasible:
+
+\paragraph{Maximum Booking Duration (3 hours)}
+
+Each member's single booking session cannot exceed three hours. This rule
+can be enforced directly using a \texttt{CHECK} constraint on the
+\texttt{Reservation} table:
+
+\begin{sql}
+ALTER TABLE Reservation
+ADD CONSTRAINT chk_reservation_max_duration
+CHECK (TIMESTAMPDIFF(HOUR, 
+    CONCAT(Reservation_Date, ' ', Start_Time),
+    CONCAT(Reservation_Date, ' ', End_Time)
+) <= 3);
+\end{sql}
+
+This constraint calculates the time difference between start and end times
+and ensures it does not exceed 3 hours.
+
+\paragraph{Maximum Advance Booking (1 week)}
+
+Members may book facilities up to one week in advance. This constraint
+prevents reservations from being made too far in the future:
+
+\begin{sql}
+ALTER TABLE Reservation
+ADD CONSTRAINT chk_reservation_max_advance
+CHECK (Reservation_Date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY));
+\end{sql}
+
+\paragraph{Maximum Pending Bookings per Member}
+
+The rule "each member may have at most 2 pending bookings at any given time"
+requires counting rows across the \texttt{Booking} table filtered by
+\texttt{Member\_ID} and \texttt{Booking\_Status = 'Pending'}. Since MySQL
+CHECK constraints do not support subqueries, this rule \textbf{must be
+enforced at the application layer} or via a \texttt{BEFORE INSERT} trigger.
+
+Application-level enforcement example:
+
+\begin{sql}
+-- Before inserting a new Booking, the application should execute:
+SELECT COUNT(*)
+FROM Booking
+WHERE Member_ID = ? AND Booking_Status = 'Pending';
+
+-- If count >= 2, reject the new booking request
+\end{sql}
+
+Alternatively, a database trigger can enforce this rule:
+
+\begin{sql}
+DELIMITER $$
+CREATE TRIGGER trg_check_pending_bookings
+BEFORE INSERT ON Booking
+FOR EACH ROW
+BEGIN
+    DECLARE pending_count INT;
+    
+    SELECT COUNT(*) INTO pending_count
+    FROM Booking
+    WHERE Member_ID = NEW.Member_ID 
+      AND Booking_Status = 'Pending';
+    
+    IF pending_count >= 2 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Member already has 2 pending bookings';
+    END IF;
+END$$
+DELIMITER ;
+\end{sql}
+
+This separation of concerns—simple constraints at the database level,
+complex counting logic at the application or trigger level—ensures that
+the system remains maintainable while enforcing all necessary business
+rules.
+
+In practice, this constraint would typically be enforced at the
+application layer or only for newly created records, to allow importing
+historical data if needed.
+
+\subsubsection{XOR Constraint for
+Maintenance}\label{xor-constraint-for-maintenance}
+
+As shown in Section 2.6, we use a \texttt{CHECK} constraint in
+\texttt{Maintenance} to ensure that each maintenance record refers to
+exactly one type of resource (either an equipment item or a facility):
+
+\begin{sql}
+ALTER TABLE Maintenance
+ADD CONSTRAINT chk_maintenance_target
+CHECK (
+    (Equipment_ID IS NOT NULL AND Facility_ID IS NULL) OR
+    (Equipment_ID IS NULL AND Facility_ID IS NOT NULL)
+);
+\end{sql}
+
+This enforces the business rule that a maintenance task cannot
+simultaneously target both a facility and an equipment item, and cannot
+be left without a target.
+
+\subsubsection{Multi-Valued Attributes}\label{multi-valued-attributes}
+
+The multi-valued attribute \texttt{Phone\_Number} of \texttt{Member} is
+transformed into a separate table \texttt{Member\_Phone}. Domain
+integrity is enforced by:
+
+\begin{itemize}
+
+\item
+  Choosing \texttt{VARCHAR(20)} for \texttt{Phone\_Number} to allow
+  different phone formats.
+\item
+  Using the composite primary key \texttt{(Member\_ID,\ Phone\_Number)}
+  to avoid duplicates.
+\item
+  Applying a simple pattern check if needed (implementation-dependent),
+  e.g.:
+\end{itemize}
+
+\begin{sql}
+-- Example pattern check (syntax depends on the SQL dialect)
+ALTER TABLE Member_Phone
+ADD CONSTRAINT chk_phone_format
+CHECK (Phone_Number <> '');  -- or a more specific pattern using LIKE/REGEXP
+\end{sql}
+
+\subsection{Summary}\label{summary}
+
+Our design enforces:
+
+\begin{itemize}
+
+\item
+  \textbf{Entity integrity} by defining appropriate primary keys for all
+  strong and weak entities, using non-null keys and \texttt{UNIQUE}
+  constraints for natural candidate keys such as \texttt{Student\_ID},
+  \texttt{Staff\_ID}, and \texttt{IC\_Number}.
+\item
+  \textbf{Referential integrity} by specifying foreign keys that
+  accurately reflect the relationships in the EERD (including
+  supertype--subtype links, bookings and training sessions derived from
+  reservations, maintenance targets, and enrollment/assignment tables),
+  with suitable actions on delete.
+\item
+  \textbf{Domain integrity} by carefully selecting data types and
+  lengths and by using \texttt{CHECK} constraints on enumerated
+  statuses, numeric ranges, time ordering, and XOR conditions.
+\end{itemize}
+
+Together, these constraints ensure that the database state remains
+consistent with the business rules of the sports facility management
+system.
+
+\section{Database Transaction}\label{task-7-acid}
+
+For Task 7, we analyze how our \textbf{actual system design} (EERD,
+relational schema, constraints, and access control) works together with
+the DBMS transaction mechanism to maintain all four ACID properties for
+key operations such as creating bookings, borrowing equipment, enrolling
+in training sessions, scheduling maintenance, and approving
+registrations.
+
+\subsection{Atomicity}\label{atomicity}
+
+Atomicity means that a business operation that consists of several
+database statements is treated as one indivisible transaction:
+it either completes fully or is entirely rolled back.
+
+In our system, we treat each high‑level business action as a single
+transaction. For example, when a member books a court and
+borrows equipment at the same time, the following steps logically belong
+to one transaction:
+
+\begin{itemize}
+
+\item
+  Insert a new row into \texttt{Reservation} (supertype) and its subtype
+  \texttt{Booking}.
+\item
+  Insert one or more rows into \texttt{Reservation\_Equipments} to
+  record which equipment is borrowed and in what quantity.
+\item
+  Rely on the derived \texttt{Available\_Quantity} (calculated from
+  \texttt{Equipment.Total\_Quantity}, \texttt{Reservation\_Equipments},
+  and active \texttt{Maintenance} records) when checking availability,
+  rather than updating a stored column.
+\end{itemize}
+
+In SQL‑style pseudocode, this is wrapped in a transaction block:
+
+\begin{sql}
+START TRANSACTION;
+  -- insert Reservation and Booking
+  -- insert Reservation_Equipments rows
+  -- (Available_Quantity is a derived attribute, no update needed)
+COMMIT; 
+\end{sql}
+
+If any step fails (for example, a foreign key violation, a
+\texttt{CHECK} constraint failure, or an application‑level validation
+error), the application will execute \texttt{ROLLBACK}, causing
+all inserts and updates in this block to be undone. Thus, we
+never end up in a state where the booking exists but the equipment
+allocation was not recorded, or vice versa. The same pattern applies to
+other multi‑step actions such as cancelling a booking (update booking
+status and delete \texttt{Reservation\_Equipments} records, which
+automatically frees equipment) or approving a
+\texttt{Visitor\_Application} and creating the corresponding
+\texttt{Member} and subtype row (\texttt{Student}, \texttt{Staff}, or
+\texttt{External\_Visitor}).
+
+\subsection{Consistency}\label{consistency}
+
+Consistency means that every committed transaction takes the database
+from one valid state to another, where all constraints and
+business rules are satisfied. In our design, consistency is mainly
+enforced through the integrity constraints defined in Task 6, combined
+with transactional execution.
+
+Key mechanisms include:
+
+\begin{itemize}
+
+\item
+  \textbf{Entity integrity:} Primary keys on tables such as
+  \texttt{Member}, \texttt{Coach}, \texttt{Facility},
+  \texttt{Equipment}, \texttt{Reservation}, and \texttt{Maintenance}
+  ensure that no duplicate or \texttt{NULL} identifiers are inserted.
+\item
+  \textbf{Referential integrity:} Foreign keys (for example, from
+  \texttt{Booking} to \texttt{Reservation}, from
+  \texttt{Reservation\_Equipments} to both \texttt{Reservation} and
+  \texttt{Equipment}, from subtypes to \texttt{Member}) ensure that a
+  transaction cannot create orphan records. If a booking references a
+  non‑existent member or facility, the insert fails and the transaction
+  is rolled back.
+\item
+  \textbf{Domain integrity:} \texttt{CHECK} constraints such as
+  \texttt{Start\_Time\ \textless{}\ End\_Time},
+  \texttt{Capacity\ \textgreater{}\ 0}, and the status enumerations
+  (e.g.~\texttt{Booking\_Status\ IN\ (\textquotesingle{}Pending\textquotesingle{},\ \textquotesingle{}Confirmed\textquotesingle{},\ \textquotesingle{}Cancelled\textquotesingle{})})
+  prevent invalid attribute values from being committed.
+\item
+  \textbf{Business rules on conflicts:} For facilities, we use indexed
+  time fields
+  (\texttt{Reservation(\\ Facility\_ID,\ Date,\ Start\_Time,\ End\_Time)}
+  and \texttt{Maintenance(Facility\_ID,\ Scheduled\_Date)}) together
+  with conflict‑checking logic (e.g.~a stored procedure that checks for
+  overlapping time ranges, or a view such as
+  \texttt{v\_facility\_occupancy}). If a new reservation would overlap
+  with an existing booking or maintenance slot, the procedure signals an
+  error and the transaction is not committed.
+\end{itemize}
+
+Because all these constraints are checked within the
+transaction, any attempt to violate a rule causes that transaction to
+fail and roll back. As a result, the database is always left in a state
+that is consistent with the conceptual EERD and the real‑world rules of
+the sports complex.
+
+\subsection{Isolation}\label{isolation}
+
+Isolation ensures that concurrent transactions do not interfere with
+each other in a way that produces incorrect results. Each transaction
+should behave as if it is running alone, even when many users are
+booking facilities or borrowing equipment at the same time.
+
+Consider the case where there are 5 rackets available. User A tries to
+borrow 4, and at nearly the same time User B tries to borrow 3. If these
+operations are not properly isolated, both might read ``5 available''
+and we could end up with \texttt{Available\_Quantity\ =\ -2}. To avoid
+this, we rely on the DBMS's isolation mechanism (for example, the
+default \texttt{READ\ COMMITTED} isolation level with row‑level locking)
+and explicitly treat stock updates as critical sections:
+
+\begin{sql}
+START TRANSACTION;
+    -- Lock the equipment row and calculate Available_Quantity
+    SELECT 
+        Total_Quantity - IFNULL(
+            (SELECT SUM(Quantity) FROM Reservation_Equipments 
+             WHERE Equipment_ID = ? AND ...), 0
+        ) - IFNULL(
+            (SELECT COUNT(*) FROM Maintenance 
+             WHERE Equipment_ID = ? 
+             AND Status IN ('Scheduled', 'In_Progress')), 0
+        ) AS Available_Quantity
+    FROM Equipment
+    WHERE Equipment_ID = ?
+    FOR UPDATE;
+
+    -- check if Available_Quantity is sufficient
+    -- if sufficient, insert Reservation_Equipments
+COMMIT;
+\end{sql}
+
+The \texttt{FOR\ UPDATE} clause (or the equivalent locking mechanism in
+the chosen DBMS) locks the selected equipment row so that only one
+transaction can modify the equipment allocation at a time. The second
+transaction will have to wait until the first commits, and will then
+calculate the updated \texttt{Available\_Quantity} based on the new
+state. Combined with application‑level validation that prevents negative
+or over‑allocated quantities, this prevents lost updates and over‑booking
+of equipment.
+
+For facility bookings and training sessions, similar isolation is
+achieved: conflict‑checking queries run inside the same transaction that
+inserts the new reservation. If isolation is not strong enough in the
+default setting, we can raise the isolation level (e.g.~to
+\texttt{SERIALIZABLE}) or use stricter locking on the
+\texttt{Reservation} rows for a given facility and time range to avoid
+double bookings and phantom conflicts.
+
+\subsection{Durability}\label{durability}
+
+Durability means that once a transaction has been committed,
+its effects are permanent, even if there is a system crash or power
+failure immediately afterwards.
+
+In our system, durability is provided by the underlying DBMS. When the
+application issues a \texttt{COMMIT} for a transaction (for example,
+after successfully creating a booking, enrolling a member into a
+training session, or marking a maintenance job as \texttt{Completed}),
+the DBMS:
+
+\begin{itemize}
+
+\item
+  First writes the changes to the transaction log (often using
+  a write‑ahead logging mechanism).
+\item
+  Then applies the changes to the data files on disk.
+\end{itemize}
+
+If a crash occurs, the DBMS replays the log during recovery to
+redo committed transactions and undo any incomplete
+ones, so that confirmed bookings and maintenance records are not lost.
+This technical durability is complemented by operational practices from
+our access‑control design: the System Administrator (DBA role) is
+responsible for regular backups and recovery procedures, ensuring that
+even in the case of hardware failure, committed data can be restored
+from backups and logs.
+
+Therefore, once a member receives confirmation that their booking has
+been successfully stored (i.e.~the transaction has committed), they can
+be confident that the booking will remain in the system despite
+unexpected failures.
+
+\newpage
+\bibliography{ref}
+
+
+
+% 添加 Marking Rubric 到目录（无编号，无点线，无页码）
+\label{LastMainPage}  % 标记正文最后一页
+\clearpage
+\pagenumbering{gobble}  % 停止页码显示
+
+\phantomsection
+\addtocontents{toc}{\cftpagenumbersoff{section}}
+\addcontentsline{toc}{section}{Turnitin Percentage Page}
+\includepdf[pages=2, fitpaper=true]{report.pdf}
+
+\phantomsection
+\addtocontents{toc}{\cftpagenumbersoff{section}}
+\addcontentsline{toc}{section}{Marking Rubric}
+\includepdf[pages=-, fitpaper=true]{rubric.pdf}
+
+
+
+\end{document}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Member Dashboard{% endblock %}
+{% block pre_main %}
+  {% include "partials/page_header.html" with title="Member Dashboard" description="Review your profile, bookings, and class enrollments in one place." %}
+{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a class="btn btn-primary" href="{% url 'members:booking_create' %}">Create booking</a>
+  <a class="btn btn-outline-secondary" href="{% url 'members:trainings' %}">Browse trainings</a>
+  <a class="btn btn-outline-secondary" href="{% url 'members:bookings' %}">View all bookings</a>
+</div>
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">Profile Details</div>
+      <div class="card-body">
+        <p class="mb-1"><strong>ID:</strong> {{ profile.member_id }}</p>
+        <p class="mb-1"><strong>Phone:</strong> {{ profile.phone|default:"Not provided" }}</p>
+        <p class="mb-3"><strong>Affiliation:</strong> {{ profile.affiliation|default:"Not provided" }}</p>
+        <a class="btn btn-sm btn-outline-primary" href="{% url 'members:profile' %}">Edit profile</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card mb-3">
+      <div class="card-header">Recent Bookings</div>
+      <ul class="list-group list-group-flush">
+        {% for booking in bookings %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span>{{ booking.facility }} · {{ booking.requested_start|date:"m/d H:i" }}</span>
+          <span class="badge bg-info text-dark">{{ booking.get_status_display }}</span>
+        </li>
+        {% empty %}
+        <li class="list-group-item">No bookings yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-header">Upcoming Classes</div>
+      <ul class="list-group list-group-flush">
+        {% for enrollment in enrollments %}
+        <li class="list-group-item">
+          {{ enrollment.session.title }} · {{ enrollment.session.start_time|date:"m/d H:i" }}
+        </li>
+        {% empty %}
+        <li class="list-group-item">No enrollments yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

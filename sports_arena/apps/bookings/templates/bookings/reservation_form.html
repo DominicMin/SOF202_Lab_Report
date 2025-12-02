@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Create Reservation{% endblock %}
+{% block content %}
+<h2 class="mb-3">Create reservation for booking #{{ booking.id }}</h2>
+<div class="row">
+  <div class="col-md-6">
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+      <div class="mb-3">
+        <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
+        {{ field }}
+      </div>
+      {% endfor %}
+      <hr />
+      <h5>Equipment allocation</h5>
+      {% for field in eq_form %}
+      <div class="mb-3">
+        <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
+        {{ field }}
+      </div>
+      {% endfor %}
+      <button class="btn btn-success" type="submit">Save</button>
+    </form>
+  </div>
+  <div class="col-md-6">
+    <div class="alert alert-info">
+      <h5>Booking summary</h5>
+      <p>Member: {{ booking.member }}</p>
+      <p>Facility: {{ booking.facility }}</p>
+      <p>Time: {{ booking.requested_start|date:"m/d H:i" }} - {{ booking.requested_end|date:"H:i" }}</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

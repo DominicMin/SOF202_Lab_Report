@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Visitor Applications{% endblock %}
+{% block pre_main %}
+  {% include "partials/page_header.html" with title="Visitor Applications" description="Review and process visitor entries submitted from the public portal." %}
+{% endblock %}
+{% block content %}
+<div class="table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">Organization</th>
+        <th scope="col">Visit date</th>
+        <th scope="col">Status</th>
+        <th scope="col" class="text-end">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for application in applications %}
+      <tr>
+        <td>{{ application.full_name }}</td>
+        <td>{{ application.organization|default:"-" }}</td>
+        <td>{{ application.visit_date }}</td>
+        <td>{{ application.get_status_display }}</td>
+        <td class="text-end">
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'management:application_review' application.id %}">Review</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="text-center">No applications found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

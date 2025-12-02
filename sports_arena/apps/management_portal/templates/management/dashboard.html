@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Management Dashboard{% endblock %}
+{% block pre_main %}
+  {% include "partials/page_header.html" with title="Management Dashboard" description="Track facilities, equipment status, maintenance tasks, and visitor approvals in one place." %}
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card text-bg-primary shadow-sm">
+      <div class="card-body">
+        <div class="fw-bold text-uppercase small text-light-50">Facilities</div>
+        <div class="display-6">{{ facility_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-bg-success shadow-sm">
+      <div class="card-body">
+        <div class="fw-bold text-uppercase small text-light-50">Equipment</div>
+        <div class="display-6">{{ equipment_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-bg-warning shadow-sm">
+      <div class="card-body">
+        <div class="fw-bold text-uppercase small text-dark">Maintenance in progress</div>
+        <div class="display-6">{{ maintenance_open }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-bg-danger shadow-sm">
+      <div class="card-body">
+        <div class="fw-bold text-uppercase small text-light-50">Visitor approvals</div>
+        <div class="display-6">{{ pending_visitors }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">Quick actions</div>
+      <div class="card-body d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-primary" href="{% url 'management:facilities' %}">Manage facilities</a>
+        <a class="btn btn-outline-primary" href="{% url 'management:equipments' %}">Manage equipment</a>
+        <a class="btn btn-outline-primary" href="{% url 'management:maintenance' %}">Maintenance records</a>
+        <a class="btn btn-outline-primary" href="{% url 'management:applications' %}">Visitor approvals</a>
+        <a class="btn btn-outline-primary" href="{% url 'admin:index' %}">Admin portal</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">Pending visitor applications</div>
+      <div class="card-body">
+        <p class="text-muted mb-2">Review and approve new visitor access requests submitted from the homepage.</p>
+        <a class="btn btn-outline-primary" href="{% url 'management:applications' %}">Go to applications</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

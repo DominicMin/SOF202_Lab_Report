@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Booking List{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>All Bookings</h2>
+  <a class="btn btn-primary" href="{% url 'bookings:booking_create' %}">New booking</a>
+</div>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Member</th>
+      <th>Facility</th>
+      <th>Time</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for booking in bookings %}
+    <tr>
+      <td>{{ booking.id }}</td>
+      <td>{{ booking.member }}</td>
+      <td>{{ booking.facility }}</td>
+      <td>{{ booking.requested_start|date:"m/d H:i" }} - {{ booking.requested_end|date:"H:i" }}</td>
+      <td><span class="badge bg-info">{{ booking.get_status_display }}</span></td>
+      <td>
+        <a class="btn btn-sm btn-outline-success" href="{% url 'bookings:reservation_create' booking.id %}">Create reservation</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="6">No data available.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+

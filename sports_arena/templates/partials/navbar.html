@@ -1,0 +1,67 @@
+{% load static %}
+<nav class="navbar navbar-expand-lg navbar-dark glass-nav sticky-top">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'home' %}">
+      <img src="{% static 'images/logo.jpg' %}" alt="Sports Arena" class="brand-badge">
+      <span class="brand-text">
+        <span class="fw-bold d-block">XMUM Sports Complex</span>
+      </span>
+    </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#mainNav"
+      aria-controls="mainNav"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav ms-auto align-items-lg-center">
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'home' %}">Home page</a>
+        </li>
+        {% if user.is_authenticated %}
+        <li class="nav-item dropdown">
+          <a
+            class="nav-link dropdown-toggle"
+            href="#"
+            role="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+          >
+            Portal Access
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end glass-dropdown">
+            <li>
+              <a class="dropdown-item" href="{% url 'members:dashboard' %}">Member Portal</a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{% url 'coaches:dashboard' %}">Coach Portal</a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{% url 'bookings:bo_dashboard' %}">Booking Management</a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{% url 'management:dashboard' %}">System Administration</a>
+            </li>
+          </ul>
+        </li>
+        {% endif %}
+      </ul>
+      <div class="navbar-cta d-flex align-items-center gap-3 ms-lg-4 mt-3 mt-lg-0">
+        {% if user.is_authenticated %}
+        <span class="navbar-text text-light small">
+          Welcome, {{ user.get_full_name|default:user.username }}
+        </span>
+        <a class="btn btn-primary rounded-pill" href="{% url 'accounts:logout' %}">Sign out</a>
+        {% else %}
+        <a class="btn btn-outline-light rounded-pill" href="{% url 'accounts:login' %}">Sign in / Sign up
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</nav>

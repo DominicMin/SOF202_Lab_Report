@@ -1,0 +1,84 @@
+\begin{thebibliography}{}
+
+\bibitem [\protect \citeauthoryear {%
+Frank%
+, Buhmann%
+\BCBL {}\ \BBA {} Basin%
+}{%
+Frank%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2013}}%
+}]{%
+frank2013roleminingprobabilisticmodels}
+\APACinsertmetastar {%
+frank2013roleminingprobabilisticmodels}%
+\begin{APACrefauthors}%
+Frank, M.%
+, Buhmann, J\BPBI M.%
+\BCBL {}\ \BBA {} Basin, D.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2013}{}{}.
+\newblock
+\APACrefbtitle {Role Mining with Probabilistic Models.} {Role mining with probabilistic models.}
+\newblock
+\begin{APACrefURL} \url{https://arxiv.org/abs/1212.4775} \end{APACrefURL}
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Gouglidis%
+, Kagia%
+\BCBL {}\ \BBA {} Hu%
+}{%
+Gouglidis%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2023}}%
+}]{%
+gouglidis2023modelcheckingaccesscontrol}
+\APACinsertmetastar {%
+gouglidis2023modelcheckingaccesscontrol}%
+\begin{APACrefauthors}%
+Gouglidis, A.%
+, Kagia, A.%
+\BCBL {}\ \BBA {} Hu, V\BPBI C.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2023}{}{}.
+\newblock
+\APACrefbtitle {Model Checking Access Control Policies: A Case Study using Google Cloud IAM.} {Model checking access control policies: A case study using google cloud iam.}
+\newblock
+\begin{APACrefURL} \url{https://arxiv.org/abs/2303.16688} \end{APACrefURL}
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Kenig%
+\ \BBA {} Suciu%
+}{%
+Kenig%
+\ \BBA {} Suciu%
+}{%
+{\protect \APACyear {2022}}%
+}]{%
+Kenig_2022}
+\APACinsertmetastar {%
+Kenig_2022}%
+\begin{APACrefauthors}%
+Kenig, B.%
+\BCBT {}\ \BBA {} Suciu, D.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2022}{{\APACmonth{01}}}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Integrity Constraints Revisited: From Exact to Approximate Implication} {Integrity constraints revisited: From exact to approximate implication}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Logical Methods in Computer Science}{Volume 18, Issue 1}{}{}.
+\newblock
+\begin{APACrefURL} \url{http://dx.doi.org/10.46298/lmcs-18(1:5)2022} \end{APACrefURL}
+\newblock
+\begin{APACrefDOI} \doi{10.46298/lmcs-18(1:5)2022} \end{APACrefDOI}
+\PrintBackRefs{\CurrentBib}
+
+\end{thebibliography}

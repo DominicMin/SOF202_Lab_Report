@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sports Arena{% endblock %}
+{% block main_class %}home-main{% endblock %}
+
+{% block pre_main %}
+<section class="home-hero home-hero--full">
+  <div class="home-hero__content">
+    <p class="text-uppercase letter-spacing text-light-50 mb-2">Sports Complex</p>
+    <h1 class="home-hero__title">Welcome to the XMUM Sports Complex System</h1>
+    <p class="home-hero__subtitle">
+      Book facilities, reserve coaches, and manage memberships through one seamless platform. From outdoor courts to indoor arenas, plan your next match or training session in seconds.
+    </p>
+    <div class="home-hero__actions d-flex flex-column flex-sm-row gap-3 justify-content-center">
+      {% if request.user.is_authenticated %}
+        <a href="{% url 'accounts:dashboard' %}" class="btn btn-success btn-lg">Enter dashboard</a>
+      {% else %}
+        <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-lg">Sign in</a>
+        <a href="{% url 'accounts:register' %}" class="btn btn-outline-light btn-lg">Create account</a>
+        <a href="{% url 'management:visitor_apply' %}" class="btn btn-outline-warning btn-lg">Visitor access</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<section class="home-highlights">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card p-4 highlight-card">
+          <h5 class="mb-3">Unified Facilities</h5>
+          <p class="text-muted mb-0">Check badminton, basketball, swimming, and more in real time, then confirm a slot instantly.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-4 highlight-card">
+          <h5 class="mb-3">Coach Scheduling</h5>
+          <p class="text-muted mb-0">Browse experienced coaches, request sessions, and coordinate changes online.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-4 highlight-card">
+          <h5 class="mb-3">Membership Lifecycle</h5>
+          <p class="text-muted mb-0">Link student/staff IDs, track approvals, and monitor status for secure venue access.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

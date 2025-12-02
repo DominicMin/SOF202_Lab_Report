@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Equipment{% endblock %}
+{% block pre_main %}
+  {% include "partials/page_header.html" with title="Equipment Inventory" description="Track and maintain all equipment attached to each facility." %}
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Equipment</h2>
+  <a class="btn btn-primary" href="{% url 'management:equipment_create' %}">Add equipment</a>
+</div>
+<div class="table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">Facility</th>
+        <th scope="col">Quantity</th>
+        <th scope="col">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for equipment in equipments %}
+      <tr>
+        <td>{{ equipment.name }}</td>
+        <td>{{ equipment.facility }}</td>
+        <td>{{ equipment.quantity }}</td>
+        <td>{{ equipment.get_status_display }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" class="text-center">No equipment records found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

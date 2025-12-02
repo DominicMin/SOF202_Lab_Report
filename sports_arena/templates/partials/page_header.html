@@ -1,0 +1,9 @@
+<section class="page-hero">
+  <div class="container">
+    <p class="page-hero__eyebrow">{{ eyebrow|default:"Member Portal" }}</p>
+    <h1 class="page-hero__title mb-2">{{ title }}</h1>
+    {% if description %}
+    <p class="page-hero__description mb-0">{{ description }}</p>
+    {% endif %}
+  </div>
+</section>

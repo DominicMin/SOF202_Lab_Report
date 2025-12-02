@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Teaching Schedule{% endblock %}
+{% block pre_main %}
+  {% include "partials/page_header.html" with title="Teaching Schedule" description="Review every session assigned to you." %}
+{% endblock %}
+{% block content %}
+<div class="table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th scope="col">Session</th>
+        <th scope="col">Time</th>
+        <th scope="col">Facility</th>
+        <th scope="col" class="text-end">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for session in sessions %}
+      <tr>
+        <td>{{ session.title }}</td>
+        <td>{{ session.start_time|date:"m/d H:i" }} – {{ session.end_time|date:"H:i" }}</td>
+        <td>{{ session.facility }}</td>
+        <td class="text-end">
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'coaches:session_detail' session.id %}">Details</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" class="text-center">No sessions assigned.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

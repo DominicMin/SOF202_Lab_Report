@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Visitor Application{% endblock %}
+{% block pre_main %}
+  {% include "partials/page_header.html" with title="Visitor Application" description="Submit your visit request and our team will review it shortly." %}
+{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6 col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+          {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+            <div class="form-text">{{ field.help_text }}</div>
+            {% endif %}
+            {% if field.errors %}
+            <div class="text-danger small">{{ field.errors|striptags }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+          <button class="btn btn-primary w-100" type="submit">Submit application</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
