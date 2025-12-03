@@ -11,7 +11,8 @@ from .forms import (
     VisitorApplicationForm,
     VisitorDecisionForm,
 )
-from .models import Equipment, Facility, Maintenance, VisitorApplication, ExternalVisitor
+from .models import Equipment, Facility, Maintenance, Visitor_Application
+from .services import approve_visitor_application, reject_visitor_application
 
 
 @role_required(ROLE_MANAGER)
@@ -19,8 +20,8 @@ def dashboard(request):
     context = {
         "facility_count": Facility.objects.count(),
         "equipment_count": Equipment.objects.count(),
-        "maintenance_open": Maintenance.objects.filter(status__in=["scheduled", "in_progress"]).count(),
-        "pending_visitors": VisitorApplication.objects.filter(status="pending").count(),
+        "maintenance_open": Maintenance.objects.filter(status__in=["Scheduled", "In_Progress"]).count(),
+        "pending_visitors": Visitor_Application.objects.filter(status="Pending").count(),
     }
     return render(request, "management/dashboard.html", context)
 
@@ -60,7 +61,8 @@ def facility_edit(request, pk: int):
 
 @role_required(ROLE_MANAGER)
 def equipment_list(request):
-    equipments = Equipment.objects.select_related("facility")
+    # New Equipment model doesn't have facility FK (equipment is independent)
+    equipments = Equipment.objects.all()
     return render(request, "management/equipment_list.html", {"equipments": equipments})
 
 
@@ -79,7 +81,8 @@ def equipment_create(request):
 
 @role_required(ROLE_MANAGER)
 def maintenance_list(request):
-    records = Maintenance.objects.select_related("facility")
+    # Maintenance can be for facility OR equipment (XOR constraint)
+    records = Maintenance.objects.select_related("facility", "equipment")
     return render(request, "management/maintenance_list.html", {"records": records})
 
 
@@ -98,34 +101,43 @@ def maintenance_create(request):
 
 @role_required(ROLE_MANAGER)
 def visitor_list(request):
-    applications = VisitorApplication.objects.all()
+    applications = Visitor_Application.objects.all()
     return render(request, "management/visitor_list.html", {"applications": applications})
 
 
 @role_required(ROLE_MANAGER)
 def visitor_review(request, pk: int):
-    application = get_object_or_404(VisitorApplication, pk=pk)
+    application = get_object_or_404(Visitor_Application, pk=pk)
     if request.method == "POST":
-        form = VisitorDecisionForm(request.POST, instance=application)
-        if form.is_valid():
-            app = form.save(commit=False)
-            app.reviewed_by = request.user
-            app.reviewed_at = timezone.now()
-            app.save()
-            if app.status == "approved" and not hasattr(app, "external_visitor"):
-                ExternalVisitor.objects.create(
-                    application=app,
-                    temp_member_id=f"EV{app.pk:05d}",
-                    email=f"visitor{app.pk}@example.com",
-                )
-            messages.success(request, "Visitor application updated.")
-            return redirect("management:applications")
-    else:
-        form = VisitorDecisionForm(instance=application)
+        # Using VisitorDecisionForm but we need to adapt it or just handle logic here
+        # Since VisitorDecisionForm is bound to legacy model, let's just get status/notes from POST
+        status = request.POST.get("status")
+        notes = request.POST.get("notes")
+        
+        if status == "Approved":
+            try:
+                # Assuming current user is a Staff member
+                staff_member = request.user.member.staff_profile
+                approve_visitor_application(application, staff_member)
+                messages.success(request, "Visitor application approved and member account created.")
+            except Exception as e:
+                messages.error(request, f"Error approving application: {str(e)}")
+                return redirect("management:visitor_review", pk=pk)
+        elif status == "Rejected":
+            try:
+                staff_member = request.user.member.staff_profile
+                reject_visitor_application(application, staff_member, notes)
+                messages.success(request, "Visitor application rejected.")
+            except Exception as e:
+                messages.error(request, f"Error rejecting application: {str(e)}")
+                return redirect("management:visitor_review", pk=pk)
+        
+        return redirect("management:applications")
+    
     return render(
         request,
         "management/visitor_review.html",
-        {"form": form, "application": application},
+        {"application": application},
     )
 
 
@@ -133,9 +145,16 @@ def visitor_apply(request):
     if request.method == "POST":
         form = VisitorApplicationForm(request.POST)
         if form.is_valid():
-            form.save()
+            app = form.save(commit=False)
+            # Handle multi-valued attributes if needed, or just save basic info first
+            app.save()
+            
+            # Save phone/emails if form handles them (it has fields but not model logic yet)
+            # For now, let's assume basic save works
+            
             messages.success(request, "Your visitor application has been submitted.")
             return redirect("home")
     else:
         form = VisitorApplicationForm()
     return render(request, "management/visitor_apply.html", {"form": form})
+

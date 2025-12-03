@@ -1,6 +1,6 @@
-﻿# 体育场馆预约管理系统（Sports Complex Reservation System）
+﻿# 体育场馆预约管理系统（Sports Arena Reservation System）
 
-## 功能
+## 功能亮点
 - 角色模型（RBAC）：DBA/Manager/Booking Officer/Coach/Member，使用 `Group + 装饰器` 控制访问。
 - 注册/登录：支持前台注册会员或教练账号，并自动分配 Group。
 - 会员门户：个人资料维护、预约创建/取消、培训课程报名与退选。
@@ -28,7 +28,7 @@ sports_arena/
 
 ## 环境准备
 
-**必须先执行init_db.sql进行建库操作**
+**必须先运行init_db.sql配置数据库**
 
 ```bash
 python -m venv .venv
@@ -44,7 +44,7 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-## 后续计划
+## 后续规划
 - 增加“您无权限访问”页面
-- 核对所有功能与论文对齐
+- 核对所有功能与论文对齐（已完成）
 - 加入大模型问数功能

@@ -1,12 +1,12 @@
 ﻿from django import forms
 
-from accounts.models import MemberProfile
+from accounts.models import Member
 
 
 class MemberProfileForm(forms.ModelForm):
     class Meta:
-        model = MemberProfile
-        fields = ("phone", "affiliation", "membership_type")
+        model = Member
+        fields = ("first_name", "last_name")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -1,51 +1,71 @@
 {% extends "base.html" %}
 {% block title %}Member Dashboard{% endblock %}
 {% block pre_main %}
-  {% include "partials/page_header.html" with title="Member Dashboard" description="Review your profile, bookings, and class enrollments in one place." %}
+  {% include "partials/page_header.html" with title="Member Dashboard" description="Overview of your bookings and training
+sessions." %}
 {% endblock %}
 {% block content %}
-<div class="d-flex flex-wrap gap-2 mb-4">
-  <a class="btn btn-primary" href="{% url 'members:booking_create' %}">Create booking</a>
-  <a class="btn btn-outline-secondary" href="{% url 'members:trainings' %}">Browse trainings</a>
-  <a class="btn btn-outline-secondary" href="{% url 'members:bookings' %}">View all bookings</a>
-</div>
-<div class="row g-3">
-  <div class="col-md-4">
-    <div class="card">
-      <div class="card-header">Profile Details</div>
+<div class="row">
+  <div class="col-md-6 mb-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Recent Bookings</h5>
+        <a href="{% url 'members:bookings' %}" class="btn btn-sm btn-outline-primary">View All</a>
+      </div>
       <div class="card-body">
-        <p class="mb-1"><strong>ID:</strong> {{ profile.member_id }}</p>
-        <p class="mb-1"><strong>Phone:</strong> {{ profile.phone|default:"Not provided" }}</p>
-        <p class="mb-3"><strong>Affiliation:</strong> {{ profile.affiliation|default:"Not provided" }}</p>
-        <a class="btn btn-sm btn-outline-primary" href="{% url 'members:profile' %}">Edit profile</a>
+        {% if bookings %}
+        <div class="list-group list-group-flush">
+          {% for booking in bookings %}
+          <div class="list-group-item px-0">
+            <div class="d-flex w-100 justify-content-between">
+              <h6 class="mb-1">{{ booking.reservation.facility.facility_name }}</h6>
+              <small class="text-muted">{{ booking.reservation.reservation_date }}</small>
+            </div>
+            <p class="mb-1">{{ booking.reservation.start_time }} - {{ booking.reservation.end_time }}</p>
+            <small>Status:
+              <span
+                class="badge {% if booking.booking_status == 'Confirmed' %}bg-success{% elif booking.booking_status == 'Cancelled' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                {{ booking.get_booking_status_display }}
+              </span>
+            </small>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted">No recent bookings.</p>
+        <a href="{% url 'members:booking_create' %}" class="btn btn-primary btn-sm">Make a Booking</a>
+        {% endif %}
       </div>
     </div>
   </div>
-  <div class="col-md-8">
-    <div class="card mb-3">
-      <div class="card-header">Recent Bookings</div>
-      <ul class="list-group list-group-flush">
-        {% for booking in bookings %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          <span>{{ booking.facility }} · {{ booking.requested_start|date:"m/d H:i" }}</span>
-          <span class="badge bg-info text-dark">{{ booking.get_status_display }}</span>
-        </li>
-        {% empty %}
-        <li class="list-group-item">No bookings yet.</li>
-        {% endfor %}
-      </ul>
-    </div>
-    <div class="card">
-      <div class="card-header">Upcoming Classes</div>
-      <ul class="list-group list-group-flush">
-        {% for enrollment in enrollments %}
-        <li class="list-group-item">
-          {{ enrollment.session.title }} · {{ enrollment.session.start_time|date:"m/d H:i" }}
-        </li>
-        {% empty %}
-        <li class="list-group-item">No enrollments yet.</li>
-        {% endfor %}
-      </ul>
+
+  <div class="col-md-6 mb-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Upcoming Training</h5>
+        <a href="{% url 'members:enrollments' %}" class="btn btn-sm btn-outline-primary">View All</a>
+      </div>
+      <div class="card-body">
+        {% if enrollments %}
+        <div class="list-group list-group-flush">
+          {% for enrollment in enrollments %}
+          <div class="list-group-item px-0">
+            <div class="d-flex w-100 justify-content-between">
+              <h6 class="mb-1">{{ enrollment.training_session.coach.first_name }} {{
+                enrollment.training_session.coach.last_name }}</h6>
+              <small class="text-muted">{{ enrollment.training_session.reservation.reservation_date }}</small>
+            </div>
+            <p class="mb-1">{{ enrollment.training_session.reservation.facility.facility_name }}</p>
+            <small>{{ enrollment.training_session.reservation.start_time }} - {{
+              enrollment.training_session.reservation.end_time }}</small>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted">No upcoming training sessions.</p>
+        <a href="{% url 'members:trainings' %}" class="btn btn-primary btn-sm">Find Sessions</a>
+        {% endif %}
+      </div>
     </div>
   </div>
 </div>

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Facilities{% endblock %}
 {% block pre_main %}
-  {% include "partials/page_header.html" with title="Facility Directory" description="Maintain venue details, capacity, and operational status." %}
+  {% include "partials/page_header.html" with title="Facilities" description="Manage sports facilities and venues." %}
 {% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -9,34 +9,40 @@
   <a class="btn btn-primary" href="{% url 'management:facility_create' %}">Add facility</a>
 </div>
 <div class="table-responsive">
-  <table class="table table-striped align-middle">
+  <table class="table align-middle">
     <thead>
       <tr>
         <th scope="col">Name</th>
+        <th scope="col">Type</th>
         <th scope="col">Location</th>
         <th scope="col">Capacity</th>
         <th scope="col">Status</th>
-        <th scope="col" class="text-end">Actions</th>
+        <th scope="col" class="text-end">Action</th>
       </tr>
     </thead>
     <tbody>
       {% for facility in facilities %}
       <tr>
-        <td>{{ facility.name }}</td>
-        <td>{{ facility.location }}</td>
+        <td>{{ facility.facility_name }}</td>
+        <td>{{ facility.type }}</td>
+        <td>{{ facility.building }} - L{{ facility.floor }} - {{ facility.room_number }}</td>
         <td>{{ facility.capacity }}</td>
-        <td>{{ facility.get_status_display }}</td>
+        <td>
+          <span
+            class="badge {% if facility.status == 'Available' %}bg-success{% elif facility.status == 'Unavailable' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+            {{ facility.get_status_display }}
+          </span>
+        </td>
         <td class="text-end">
-          <a class="btn btn-sm btn-outline-secondary" href="{% url 'management:facility_edit' facility.id %}">Edit</a>
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'management:facility_edit' facility.pk %}">Edit</a>
         </td>
       </tr>
       {% empty %}
       <tr>
-        <td colspan="5" class="text-center">No facilities available.</td>
+        <td colspan="6" class="text-center">No facilities found.</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% endblock %}
-

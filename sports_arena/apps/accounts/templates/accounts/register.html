@@ -38,6 +38,7 @@
     const form = document.getElementById('registerForm');
     if (!form) return;
 
+    // Bootstrap styling
     form.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), select, textarea').forEach(function (el) {
       el.classList.add('form-control');
     });
@@ -53,6 +54,23 @@
         }
       }
     });
+
+    // Dynamic field visibility
+    const roleSelect = document.getElementById('id_role');
+    const specializationField = document.getElementById('id_specialization').closest('.mb-3');
+
+    function updateVisibility() {
+      if (roleSelect.value === 'coach') {
+        specializationField.style.display = 'none';
+      } else {
+        specializationField.style.display = 'block';
+      }
+    }
+
+    if (roleSelect && specializationField) {
+      roleSelect.addEventListener('change', updateVisibility);
+      updateVisibility(); // Initial state
+    }
   });
 </script>
 {% endblock %}

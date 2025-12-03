@@ -3,7 +3,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
 ROLE_CHOICES = (
-    ("member", "Member"),
+    ("student", "Student"),
+    ("staff", "Staff"),
     ("coach", "Coach"),
 )
 
@@ -12,10 +13,9 @@ class UserRegistrationForm(UserCreationForm):
     first_name = forms.CharField(label="First Name", max_length=30)
     last_name = forms.CharField(label="Last Name", max_length=30)
     email = forms.EmailField(label="Email")
-    role = forms.ChoiceField(label="Role", choices=ROLE_CHOICES, initial="member")
+    role = forms.ChoiceField(label="Role", choices=ROLE_CHOICES, initial="student")
     phone = forms.CharField(label="Phone", max_length=20, required=False)
-    affiliation = forms.CharField(label="Affiliation", max_length=100, required=False)
-    specialty = forms.CharField(label="Specialty (for Coaches)", max_length=100, required=False)
+    specialization = forms.CharField(label="Specialization (for Coaches)", max_length=100, required=False)
 
     class Meta(UserCreationForm.Meta):
         model = User

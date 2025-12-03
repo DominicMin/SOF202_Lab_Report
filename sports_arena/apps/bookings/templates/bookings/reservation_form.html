@@ -1,36 +1,92 @@
 {% extends "base.html" %}
-{% block title %}Create Reservation{% endblock %}
+{% block title %}Manage Booking{% endblock %}
+{% block pre_main %}
+  {% include "partials/page_header.html" with title="Manage Booking" description="Process booking request, add equipment,
+and update status." %}
+{% endblock %}
 {% block content %}
-<h2 class="mb-3">Create reservation for booking #{{ booking.id }}</h2>
 <div class="row">
-  <div class="col-md-6">
-    <form method="post">
-      {% csrf_token %}
-      {% for field in form %}
-      <div class="mb-3">
-        <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
-        {{ field }}
+  <div class="col-md-6 mb-4">
+    <div class="card h-100">
+      <div class="card-header">Booking Details</div>
+      <div class="card-body">
+        <dl class="row">
+          <dt class="col-sm-4">Member</dt>
+          <dd class="col-sm-8">{{ booking.member.first_name }} {{ booking.member.last_name }}</dd>
+
+          <dt class="col-sm-4">Facility</dt>
+          <dd class="col-sm-8">{{ booking.reservation.facility.facility_name }}</dd>
+
+          <dt class="col-sm-4">Date</dt>
+          <dd class="col-sm-8">{{ booking.reservation.reservation_date }}</dd>
+
+          <dt class="col-sm-4">Time</dt>
+          <dd class="col-sm-8">{{ booking.reservation.start_time }} - {{ booking.reservation.end_time }}</dd>
+
+          <dt class="col-sm-4">Status</dt>
+          <dd class="col-sm-8">
+            <span
+              class="badge {% if booking.booking_status == 'Confirmed' %}bg-success{% elif booking.booking_status == 'Cancelled' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+              {{ booking.get_booking_status_display }}
+            </span>
+          </dd>
+        </dl>
+
+        <hr>
+        <h6 class="mb-3">Actions</h6>
+        <form method="post" class="d-flex gap-2">
+          {% csrf_token %}
+          {% if booking.booking_status == 'Pending' %}
+          <button type="submit" name="confirm_booking" class="btn btn-success flex-grow-1">Confirm Booking</button>
+          <button type="submit" name="reject_booking" class="btn btn-danger flex-grow-1">Reject Booking</button>
+          {% elif booking.booking_status == 'Confirmed' %}
+          <button type="submit" name="reject_booking" class="btn btn-danger w-100">Cancel Booking</button>
+          {% endif %}
+        </form>
       </div>
-      {% endfor %}
-      <hr />
-      <h5>Equipment allocation</h5>
-      {% for field in eq_form %}
-      <div class="mb-3">
-        <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
-        {{ field }}
-      </div>
-      {% endfor %}
-      <button class="btn btn-success" type="submit">Save</button>
-    </form>
+    </div>
   </div>
-  <div class="col-md-6">
-    <div class="alert alert-info">
-      <h5>Booking summary</h5>
-      <p>Member: {{ booking.member }}</p>
-      <p>Facility: {{ booking.facility }}</p>
-      <p>Time: {{ booking.requested_start|date:"m/d H:i" }} - {{ booking.requested_end|date:"H:i" }}</p>
+
+  <div class="col-md-6 mb-4">
+    <div class="card h-100">
+      <div class="card-header">Equipment</div>
+      <div class="card-body">
+        {% if existing_equipment %}
+        <h6 class="mb-3">Reserved Equipment</h6>
+        <ul class="list-group mb-4">
+          {% for eq in existing_equipment %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ eq.equipment.equipment_name }}
+            <span class="badge bg-primary rounded-pill">{{ eq.quantity }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted mb-4">No equipment reserved.</p>
+        {% endif %}
+
+        <hr>
+        <h6 class="mb-3">Add Equipment</h6>
+        <form method="post">
+          {% csrf_token %}
+          {% if eq_form.non_field_errors %}
+          <div class="alert alert-danger">{{ eq_form.non_field_errors }}</div>
+          {% endif %}
+
+          {% for field in eq_form %}
+          <div class="mb-3">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+            <div class="text-danger small">{{ field.errors|striptags }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+
+          <button type="submit" name="add_equipment" class="btn btn-primary w-100">Add Equipment</button>
+        </form>
+      </div>
     </div>
   </div>
 </div>
 {% endblock %}
-
