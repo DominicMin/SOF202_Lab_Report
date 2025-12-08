@@ -15,8 +15,7 @@ def _get_profile(request) -> Member:
     try:
         return request.user.member
     except Member.DoesNotExist as exc:  # type: ignore[attr-defined]
-        messages.error(request, "Your account is not linked to a member profile yet.")
-        raise Http404 from exc
+        raise Http404("Your account is not linked to a member profile yet") from exc
 
 
 @role_required(ROLE_MEMBER)

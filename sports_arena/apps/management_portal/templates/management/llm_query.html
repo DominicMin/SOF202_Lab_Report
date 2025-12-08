@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}LLM Ask{% endblock %}
+{% block pre_main %}
+  {% include "partials/page_header.html" with title="LLM Ask (Managers Only)" description="Send a question to the configured LLM endpoint and view the response." %}
+{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-8 mx-auto">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <p class="text-muted small mb-3">Current model: {{ llm_model|default:"(not set)" }}</p>
+        <form method="post" class="d-flex flex-column gap-3">
+          {% csrf_token %}
+          <div>
+            <label class="form-label fw-semibold">Question</label>
+            <textarea name="question" class="form-control" rows="5"
+              placeholder="Enter your question for the LLM">{{ question }}</textarea>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="1" id="includeDb" name="include_db" {% if include_db %} checked {% endif %}>
+            <label class="form-check-label" for="includeDb">
+              Include database snapshot
+            </label>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button type="submit" class="btn btn-primary">Send</button>
+            {% if not configured %}
+            <span class="text-danger small">LLM_BASE_URL / LLM_API_KEY not set; requests will fail.</span>
+            {% endif %}
+          </div>
+        </form>
+        {% if error_message %}
+        <div class="alert alert-danger mt-3 mb-0">{{ error_message }}</div>
+        {% endif %}
+        {% if answer %}
+        <div class="alert alert-success mt-3 mb-0">
+          <div class="fw-semibold mb-1">Response</div>
+          <div id="answer-rendered"></div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+  (function () {
+    const raw = "{{ answer|default:'' | escapejs }}";
+    const target = document.getElementById("answer-rendered");
+    if (raw && target && window.marked) {
+      target.innerHTML = marked.parse(raw);
+    }
+  })();
+</script>
+{% endblock %}

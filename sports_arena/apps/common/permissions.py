@@ -21,7 +21,6 @@ def _has_role(user, roles: Iterable[str]) -> bool:
 
 
 def role_required(*roles: str):
-    """用于 FBV 的装饰器，限制访问到特定角色组。"""
 
     def decorator(view_func):
         @login_required
@@ -29,7 +28,7 @@ def role_required(*roles: str):
         def _wrapped(request, *args, **kwargs):
             target_roles = roles or []
             if not _has_role(request.user, target_roles):
-                raise PermissionDenied("当前账号无权限访问该页面")
+                raise PermissionDenied("The current account does not have permission to access this page.")
             return view_func(request, *args, **kwargs)
 
         return _wrapped
@@ -38,11 +37,10 @@ def role_required(*roles: str):
 
 
 class RoleRequiredMixin:
-    """用于 CBV 的混入，设置 ``required_roles`` 属性即可。"""
 
     required_roles: Iterable[str] = tuple()
 
     def dispatch(self, request, *args, **kwargs):  # type: ignore[override]
         if not _has_role(request.user, self.required_roles):
-            raise PermissionDenied("当前账号无权限访问该页面")
+            raise PermissionDenied("The current account does not have permission to access this page.")
         return super().dispatch(request, *args, **kwargs)

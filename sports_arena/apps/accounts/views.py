@@ -17,7 +17,6 @@ from common.permissions import (
 )
 
 from .forms import UserRegistrationForm
-from .models import CoachProfile, MemberProfile
 
 
 def _assign_role(user, role_name: str) -> None:

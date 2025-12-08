@@ -12,3 +12,6 @@ urlpatterns = [
     path("bo/", include("bookings.urls")),
     path("manager/", include("management_portal.urls")),
 ]
+
+handler403 = "apps.common.views.permission_denied_view"
+handler404 = "apps.common.views.denied_view_404"

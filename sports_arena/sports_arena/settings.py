@@ -16,6 +16,38 @@ if str(APPS_DIR) not in sys.path:
     sys.path.append(str(APPS_DIR))
 
 
+def _load_config() -> dict:
+    """Load key-value pairs from config.yaml (very small, non-YAML parser)."""
+    config_path = BASE_DIR / "config.yaml"
+    if not config_path.exists():
+        return {}
+
+    config: dict[str, str] = {}
+    for raw_line in config_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        key = key.strip()
+        value = value.strip()
+        # Strip surrounding quotes if present
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        config[key] = value
+    return config
+
+
+_CONFIG = _load_config()
+
+
+def get_config_value(name: str, default: str = "") -> str:
+    """Prefer environment variable, otherwise fallback to config.yaml."""
+    env_val = os.environ.get(name)
+    if env_val not in (None, ""):
+        return env_val
+    return _CONFIG.get(name, default)
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -27,8 +59,7 @@ SECRET_KEY = os.environ.get(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 # Application definition
 
@@ -85,11 +116,11 @@ WSGI_APPLICATION = 'sports_arena.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": os.environ.get("DB_NAME", "sports_arena"),
-        "USER": os.environ.get("DB_USER", "root"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", ""),
-        "HOST": os.environ.get("DB_HOST", "127.0.0.1"),
-        "PORT": os.environ.get("DB_PORT", "3306"),
+        "NAME": get_config_value("DB_NAME", "sports_arena"),
+        "USER": get_config_value("DB_USER", "root"),
+        "PASSWORD": get_config_value("DB_PASSWORD", ""),
+        "HOST": get_config_value("DB_HOST", "127.0.0.1"),
+        "PORT": get_config_value("DB_PORT", "3306"),
         "OPTIONS": {
             "charset": "utf8mb4",
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
@@ -143,3 +174,8 @@ LOGOUT_REDIRECT_URL = "/accounts/login/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# LLM configuration
+LLM_BASE_URL = get_config_value("LLM_BASE_URL", "")
+LLM_API_KEY = get_config_value("LLM_API_KEY", "")
+LLM_MODEL = get_config_value("LLM_MODEL", "")

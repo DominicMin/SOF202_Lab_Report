@@ -1,4 +1,3 @@
-﻿from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -216,39 +215,3 @@ class Visitor_Application_Email(models.Model):
 
     def __str__(self) -> str:
         return f"{self.application.first_name} {self.application.last_name}: {self.email_address}"
-
-
-# ============================================================
-# Legacy Models (Kept for backward compatibility during migration)
-# TODO: Remove after complete migration
-# ============================================================
-
-class VisitorApplication(models.Model):
-    """DEPRECATED: Use Visitor_Application model instead."""
-    full_name = models.CharField(max_length=100)
-    organization = models.CharField(max_length=100, blank=True)
-    contact = models.CharField(max_length=50)
-    visit_date = models.DateField()
-    reason = models.TextField()
-    status = models.CharField(
-        max_length=20,
-        choices=[("pending", "Pending"), ("approved", "Approved"), ("rejected", "Rejected")],
-        default="pending",
-    )
-    reviewed_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
-    reviewed_at = models.DateTimeField(null=True, blank=True)
-    notes = models.TextField(blank=True)
-
-    def __str__(self) -> str:
-        return f"Visitor {self.full_name} ({self.get_status_display()})"
-
-
-class ExternalVisitor(models.Model):
-    """DEPRECATED: Use External_Visitor model instead."""
-    application = models.OneToOneField(VisitorApplication, on_delete=models.CASCADE, related_name="external_visitor")
-    temp_member_id = models.CharField(max_length=20, unique=True)
-    email = models.EmailField()
-
-    def __str__(self) -> str:
-        return f"{self.temp_member_id}-{self.application.full_name}"
-

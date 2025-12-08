@@ -4,12 +4,10 @@ from .models import (
     Coach,
     Coach_Email,
     Coach_Phone,
-    CoachProfile,
     External_Visitor,
     Member,
     Member_Email,
     Member_Phone,
-    MemberProfile,
     Staff,
     Student,
 )
@@ -71,21 +69,3 @@ class CoachAdmin(admin.ModelAdmin):
     search_fields = ("first_name", "last_name", "sport_type")
     list_filter = ("sport_type", "level")
     inlines = [Coach_PhoneInline, Coach_EmailInline]
-
-
-# ============================================================
-# Legacy Models Admin (for backward compatibility)
-# ============================================================
-
-
-@admin.register(MemberProfile)
-class MemberProfileAdmin(admin.ModelAdmin):
-    list_display = ("member_id", "user", "status", "affiliation")
-    search_fields = ("member_id", "user__username", "user__first_name", "user__last_name")
-    list_filter = ("status",)
-
-
-@admin.register(CoachProfile)
-class CoachProfileAdmin(admin.ModelAdmin):
-    list_display = ("coach_id", "user", "specialty")
-    search_fields = ("coach_id", "user__username", "user__first_name", "user__last_name")

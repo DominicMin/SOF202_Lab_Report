@@ -13,9 +13,7 @@ def _get_coach_profile(request) -> Coach:
     try:
         return request.user.coach
     except Coach.DoesNotExist as exc:  # type: ignore[attr-defined]
-        messages.error(request, "Your account is not linked to a coach profile yet.")
-        raise Http404 from exc
-
+        raise Http404("Your account is not linked to a coach profile yet") from exc
 
 @role_required(ROLE_COACH, ROLE_MANAGER)
 def dashboard(request):

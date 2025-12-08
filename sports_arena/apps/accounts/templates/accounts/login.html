@@ -9,7 +9,15 @@
         <h2 class="card-title mb-4 text-center">Sign in to System</h2>
         <form method="post">
           {% csrf_token %}
-          {{ form.non_field_errors }}
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger" role="alert">
+            <ul class="mb-0 list-unstyled">
+              {% for error in form.non_field_errors %}
+              <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
           <div class="mb-3">
             <label class="form-label" for="id_username">Username</label>
             {{ form.username }}

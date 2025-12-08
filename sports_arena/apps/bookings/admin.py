@@ -4,9 +4,7 @@ from .models import (
     Booking,
     Reservation,
     Reservation_Equipments,
-    ReservationEquipment,
     Session_Enrollment,
-    SessionEnrollment,
     TrainingSession,
 )
 

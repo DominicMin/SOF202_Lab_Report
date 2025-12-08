@@ -2,13 +2,11 @@
 
 from .models import (
     Equipment,
-    ExternalVisitor,
     Facility,
     Maintenance,
     Visitor_Application,
     Visitor_Application_Email,
     Visitor_Application_Phone,
-    VisitorApplication,
 )
 
 # ============================================================
@@ -62,18 +60,3 @@ class VisitorApplicationAdmin(admin.ModelAdmin):
     list_filter = ("status", "application_date")
     search_fields = ("first_name", "last_name", "ic_number")
     inlines = [Visitor_Application_PhoneInline, Visitor_Application_EmailInline]
-
-
-# ============================================================
-# Legacy Models Admin (for backward compatibility)
-# ============================================================
-
-
-@admin.register(VisitorApplication)
-class OldVisitorApplicationAdmin(admin.ModelAdmin):
-    list_display = ("full_name", "status", "visit_date")
-    list_filter = ("status",)
-    search_fields = ("full_name",)
-
-
-admin.site.register(ExternalVisitor)

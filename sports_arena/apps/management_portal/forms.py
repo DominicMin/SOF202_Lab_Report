@@ -1,6 +1,6 @@
 ﻿from django import forms
 
-from .models import Equipment, Facility, Maintenance, Visitor_Application, VisitorApplication
+from .models import Equipment, Facility, Maintenance, Visitor_Application
 
 
 class BaseStyledModelForm(forms.ModelForm):
@@ -65,23 +65,3 @@ class VisitorApplicationForm(BaseStyledModelForm):
         widgets = {
             "application_date": forms.DateInput(attrs={"type": "date"}),
         }
-
-
-# Legacy forms for backward compatibility
-class OldVisitorApplicationForm(BaseStyledModelForm):
-    """Legacy form for old VisitorApplication model."""
-    class Meta:
-        model = VisitorApplication
-        fields = ("full_name", "organization", "contact", "visit_date", "reason")
-        widgets = {
-            "visit_date": forms.DateInput(attrs={"type": "date"}),
-            "reason": forms.Textarea(attrs={"rows": 4}),
-        }
-
-
-class VisitorDecisionForm(BaseStyledModelForm):
-    """Legacy form for visitor decisions."""
-    class Meta:
-        model = VisitorApplication
-        fields = ("status", "notes")
-

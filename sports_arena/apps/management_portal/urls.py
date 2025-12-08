@@ -6,6 +6,7 @@ app_name = "management"
 
 urlpatterns = [
     path("dashboard/", views.dashboard, name="dashboard"),
+    path("llm/", views.llm_query, name="llm_query"),
     path("visitors/apply/", views.visitor_apply, name="visitor_apply"),
     path("facilities/", views.facility_list, name="facilities"),
     path("facilities/new/", views.facility_create, name="facility_create"),
