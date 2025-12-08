@@ -5,8 +5,8 @@ from django.utils import timezone
 
 from accounts.models import Member
 from bookings.forms import MemberBookingForm
-from bookings.models import Booking, Session_Enrollment, TrainingSession
-from common.permissions import ROLE_MEMBER, role_required
+from bookings.models import Booking, Reservation, Session_Enrollment, TrainingSession
+from common.permissions import ROLE_COACH, ROLE_MEMBER, role_required
 
 from .forms import MemberProfileForm
 
@@ -60,17 +60,16 @@ def booking_create(request):
     if request.method == "POST":
         form = MemberBookingForm(profile, request.POST)
         if form.is_valid():
+            reservation = Reservation.objects.create(
+                facility=form.cleaned_data["facility"],
+                reservation_date=form.cleaned_data["reservation_date"],
+                start_time=form.cleaned_data["start_time"],
+                end_time=form.cleaned_data["end_time"],
+            )
             booking = form.save(commit=False)
             booking.member = profile
+            booking.reservation = reservation
             booking.booking_status = "Pending"
-            
-            # Manually set reservation fields from form cleaned_data
-            # because BookingForm doesn't save them to the parent Reservation instance automatically
-            booking.facility = form.cleaned_data['facility']
-            booking.reservation_date = form.cleaned_data['reservation_date']
-            booking.start_time = form.cleaned_data['start_time']
-            booking.end_time = form.cleaned_data['end_time']
-            
             booking.save()
             messages.success(request, "Booking submitted successfully. Please wait for confirmation.")
             return redirect("members:bookings")
@@ -90,7 +89,7 @@ def booking_cancel(request, booking_id: int):
     return redirect("members:bookings")
 
 
-@role_required(ROLE_MEMBER)
+@role_required(ROLE_MEMBER, ROLE_COACH)
 def training_list(request):
     profile = _get_profile(request)
     # Filter sessions starting from now
@@ -111,7 +110,7 @@ def training_list(request):
     )
 
 
-@role_required(ROLE_MEMBER)
+@role_required(ROLE_MEMBER, ROLE_COACH)
 def training_enroll(request, session_id: int):
     profile = _get_profile(request)
     session = get_object_or_404(TrainingSession, pk=session_id)
@@ -126,7 +125,7 @@ def training_enroll(request, session_id: int):
     return redirect("members:trainings")
 
 
-@role_required(ROLE_MEMBER)
+@role_required(ROLE_MEMBER, ROLE_COACH)
 def training_drop(request, session_id: int):
     profile = _get_profile(request)
     enrollment = get_object_or_404(
@@ -138,7 +137,7 @@ def training_drop(request, session_id: int):
     return redirect("members:enrollments")
 
 
-@role_required(ROLE_MEMBER)
+@role_required(ROLE_MEMBER, ROLE_COACH)
 def enrollment_list(request):
     profile = _get_profile(request)
     enrollments = (

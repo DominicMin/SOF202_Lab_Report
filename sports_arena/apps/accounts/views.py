@@ -44,7 +44,16 @@ class RegisterView(View):
             specialization = form.cleaned_data.get("specialization")
             
             from django.utils import timezone
-            from .models import Member, Coach, Member_Phone, Coach_Phone, Student, Staff
+            from .models import (
+                Coach,
+                Coach_Email,
+                Coach_Phone,
+                Member,
+                Member_Email,
+                Member_Phone,
+                Staff,
+                Student,
+            )
 
             if role == "coach":
                 _assign_role(user, ROLE_COACH)
@@ -58,6 +67,8 @@ class RegisterView(View):
                 )
                 if phone:
                     Coach_Phone.objects.create(coach=coach, phone_number=phone)
+                if user.email:
+                    Coach_Email.objects.create(coach=coach, email_address=user.email)
                     
                 messages.success(request, "Coach account created successfully. Please wait for the administrator to assign courses.")
             else:
@@ -81,6 +92,8 @@ class RegisterView(View):
                 
                 if phone:
                     Member_Phone.objects.create(member=member, phone_number=phone)
+                if user.email:
+                    Member_Email.objects.create(member=member, email_address=user.email)
                     
                 messages.success(request, f"{role.capitalize()} account registered successfully.")
             return redirect("accounts:login")

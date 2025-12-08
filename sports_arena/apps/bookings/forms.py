@@ -181,9 +181,10 @@ class BookingForm(forms.ModelForm):
             )
         
         # Check for conflicts (if facility is provided)
-        if self.facility:
+        facility = self.facility or cleaned.get("facility")
+        if facility:
             if check_reservation_conflict(
-                self.facility.facility_id,
+                facility.facility_id,
                 reservation_date,
                 start_time,
                 end_time

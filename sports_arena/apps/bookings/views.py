@@ -42,17 +42,16 @@ def booking_create(request):
     if request.method == "POST":
         form = OfficerBookingForm(request.POST)
         if form.is_valid():
+            reservation = Reservation.objects.create(
+                facility=form.cleaned_data["facility"],
+                reservation_date=form.cleaned_data["reservation_date"],
+                start_time=form.cleaned_data["start_time"],
+                end_time=form.cleaned_data["end_time"],
+            )
             booking = form.save(commit=False)
-            # Manually set reservation fields
-            booking.facility = form.cleaned_data['facility']
-            booking.reservation_date = form.cleaned_data['reservation_date']
-            booking.start_time = form.cleaned_data['start_time']
-            booking.end_time = form.cleaned_data['end_time']
-            booking.booking_status = "Confirmed" # Officers create confirmed bookings directly? Or Pending?
-            # Let's say Pending by default, or Confirmed if officer does it. 
-            # The form doesn't have status field. Let's default to Confirmed for officers.
+            booking.reservation = reservation
+            # Officers create confirmed bookings directly
             booking.booking_status = "Confirmed"
-            
             booking.save()
             messages.success(request, f"Created a booking for {booking.member}.")
             return redirect("bookings:booking_list")

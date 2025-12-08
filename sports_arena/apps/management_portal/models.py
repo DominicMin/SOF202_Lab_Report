@@ -81,6 +81,7 @@ class Maintenance(models.Model):
             ('Completed', 'Completed'),
             ('Cancelled', 'Cancelled'),
         ],
+        default='Scheduled',
         db_column='Status'
     )
     description = models.TextField(null=True, blank=True, db_column='Description')

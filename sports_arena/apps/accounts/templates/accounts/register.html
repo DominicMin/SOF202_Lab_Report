@@ -60,10 +60,11 @@
     const specializationField = document.getElementById('id_specialization').closest('.mb-3');
 
     function updateVisibility() {
+      if (!specializationField) return;
       if (roleSelect.value === 'coach') {
-        specializationField.style.display = 'none';
-      } else {
         specializationField.style.display = 'block';
+      } else {
+        specializationField.style.display = 'none';
       }
     }
 

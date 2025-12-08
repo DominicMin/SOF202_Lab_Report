@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 
+from bookings.forms import TrainingSessionForm
 from bookings.models import Reservation
 from common.permissions import ROLE_MANAGER, role_required
 
@@ -84,6 +85,20 @@ def equipment_create(request):
 
 
 @role_required(ROLE_MANAGER)
+def equipment_edit(request, pk: int):
+    equipment = get_object_or_404(Equipment, pk=pk)
+    if request.method == "POST":
+        form = EquipmentForm(request.POST, instance=equipment)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Equipment updated successfully.")
+            return redirect("management:equipments")
+    else:
+        form = EquipmentForm(instance=equipment)
+    return render(request, "management/equipment_form.html", {"form": form, "equipment": equipment})
+
+
+@role_required(ROLE_MANAGER)
 def maintenance_list(request):
     # Maintenance can be for facility OR equipment (XOR constraint)
     records = Maintenance.objects.select_related("facility", "equipment")
@@ -101,6 +116,36 @@ def maintenance_create(request):
     else:
         form = MaintenanceForm()
     return render(request, "management/maintenance_form.html", {"form": form})
+
+
+@role_required(ROLE_MANAGER)
+def maintenance_update_status(request, pk: int):
+    """Update maintenance status via POST. Handle completion_date logic."""
+    from datetime import date
+    
+    if request.method != "POST":
+        return redirect("management:maintenance")
+    
+    maintenance = get_object_or_404(Maintenance, pk=pk)
+    new_status = request.POST.get("status")
+    valid_statuses = ["In_Progress", "Completed", "Cancelled"]
+    
+    if new_status not in valid_statuses:
+        messages.error(request, "Invalid status value.")
+        return redirect("management:maintenance")
+    
+    old_status = maintenance.status
+    maintenance.status = new_status
+    
+    # Handle completion_date logic
+    if new_status == "Completed":
+        maintenance.completion_date = date.today()
+    elif old_status == "Completed" and new_status != "Completed":
+        maintenance.completion_date = None
+    
+    maintenance.save()
+    messages.success(request, f"Maintenance status updated to {maintenance.get_status_display()}.")
+    return redirect("management:maintenance")
 
 
 @role_required(ROLE_MANAGER)
@@ -255,3 +300,25 @@ def llm_query(request):
         "db_context": db_context,
     }
     return render(request, "management/llm_query.html", context)
+
+
+@role_required(ROLE_MANAGER)
+def training_session_create(request):
+    """Create a new training session (Reservation + TrainingSession)."""
+    if request.method == "POST":
+        form = TrainingSessionForm(request.POST)
+        if form.is_valid():
+            reservation = Reservation.objects.create(
+                facility=form.cleaned_data["facility"],
+                reservation_date=form.cleaned_data["reservation_date"],
+                start_time=form.cleaned_data["start_time"],
+                end_time=form.cleaned_data["end_time"],
+            )
+            session = form.save(commit=False)
+            session.reservation = reservation
+            session.save()
+            messages.success(request, "Training session created successfully.")
+            return redirect("bookings:reservation_list")
+    else:
+        form = TrainingSessionForm()
+    return render(request, "management/training_session_form.html", {"form": form})

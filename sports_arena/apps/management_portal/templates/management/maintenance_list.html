@@ -18,6 +18,7 @@
         <th scope="col">Completion Date</th>
         <th scope="col">Status</th>
         <th scope="col">Description</th>
+        <th scope="col" class="text-end">Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -42,10 +43,29 @@
           </span>
         </td>
         <td>{{ record.description|truncatechars:50 }}</td>
+        <td class="text-end">
+          <div class="btn-group btn-group-sm" role="group">
+            <form method="post" action="{% url 'management:maintenance_update_status' record.pk %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="status" value="In_Progress">
+              <button type="submit" class="btn btn-outline-primary btn-sm{% if record.status == 'In_Progress' %} active{% endif %}" {% if record.status == 'In_Progress' %} disabled {% endif %}>In Progress</button>
+            </form>
+            <form method="post" action="{% url 'management:maintenance_update_status' record.pk %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="status" value="Completed">
+              <button type="submit" class="btn btn-outline-primary btn-sm {% if record.status == 'Completed' %} active{% endif %}" {% if record.status == 'Completed' %}disabled{% endif %}>Completed</button>
+            </form>
+            <form method="post" action="{% url 'management:maintenance_update_status' record.pk %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="status" value="Cancelled">
+              <button type="submit" class="btn btn-outline-primary btn-sm{% if record.status == 'Cancelled' %} active{% endif %}" {% if record.status == 'Cancelled' %}disabled{% endif %}>Cancelled</button>
+            </form>
+          </div>
+        </td>
       </tr>
       {% empty %}
       <tr>
-        <td colspan="6" class="text-center">No maintenance records found.</td>
+        <td colspan="7" class="text-center">No maintenance records found.</td>
       </tr>
       {% endfor %}
     </tbody>

@@ -31,7 +31,7 @@ class MaintenanceForm(BaseStyledModelForm):
     """Form for new Maintenance model."""
     class Meta:
         model = Maintenance
-        fields = ("facility", "equipment", "description", "scheduled_date", "status")
+        fields = ("facility", "equipment", "description", "scheduled_date")
         widgets = {"scheduled_date": forms.DateInput(attrs={"type": "date"})}
     
     def clean(self):

@@ -13,8 +13,11 @@ urlpatterns = [
     path("facilities/<int:pk>/edit/", views.facility_edit, name="facility_edit"),
     path("equipments/", views.equipment_list, name="equipments"),
     path("equipments/new/", views.equipment_create, name="equipment_create"),
+    path("equipments/<int:pk>/edit/", views.equipment_edit, name="equipment_edit"),
     path("maintenance/", views.maintenance_list, name="maintenance"),
     path("maintenance/new/", views.maintenance_create, name="maintenance_create"),
+    path("maintenance/<int:pk>/status/", views.maintenance_update_status, name="maintenance_update_status"),
     path("applications/", views.visitor_list, name="applications"),
     path("applications/<int:pk>/review/", views.visitor_review, name="application_review"),
+    path("training-sessions/new/", views.training_session_create, name="training_session_create"),
 ]
