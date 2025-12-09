@@ -1,8 +1,0 @@
-DB_NAME: sports_arena
-DB_USER: root
-DB_PASSWORD: ""
-DB_HOST: 127.0.0.1
-DB_PORT: 3306
-LLM_BASE_URL: "https://api.deepseek.com/v1/chat/completions"
-LLM_API_KEY: "sk-579db6a2b3d345c3b9cdbd8f284efca9"
-LLM_MODEL: "deepseek-chat"
