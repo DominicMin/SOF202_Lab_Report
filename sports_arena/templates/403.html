@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block main_class %}py-0{% endblock %}
+
+{% block content %}
+<section class="error-page d-flex align-items-center justify-content-center">
+  <style>
+    .error-page {
+      min-height: calc(60vh);
+      padding: 3rem 1rem;
+      color: #fff;
+      text-align: center;
+    }
+    .error-card {
+      max-width: 560px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 3rem 2.5rem;
+      border-radius: 1.5rem;
+      background: linear-gradient(125deg, rgba(6, 40, 94, 0.95), rgba(7, 98, 163, 0.88));
+      backdrop-filter: blur(14px);
+      box-shadow: 0 20px 60px rgba(3, 7, 18, 0.45);
+    }
+    .error-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.25rem 1rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      font-size: 0.85rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    .error-code {
+      font-size: clamp(3rem, 14vw, 5.5rem);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin: 1.5rem 0 0.5rem;
+    }
+    .error-title {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .error-description {
+      color: rgba(255, 255, 255, 0.9);
+      line-height: 1.7;
+      margin-bottom: 2.25rem;
+    }
+    .error-actions .btn {
+      min-width: 160px;
+    }
+    @media (max-width: 576px) {
+      .error-card {
+        padding: 2rem 1.5rem;
+      }
+    }
+  </style>
+  <div class="error-card">
+    <div class="error-pill">
+      <span>Restricted</span>
+    </div>
+    <div class="error-code">403</div>
+    <p class="error-title">Sorry, you do not have permission to view this content</p>
+    <p class="error-description">
+      This page is accessible only to accounts with the appropriate roles or permissions.<br />
+    </p>
+    <div class="error-actions d-flex flex-wrap gap-3 justify-content-center">
+      <button type="button" class="btn btn-outline-light" onclick="history.back()">
+        Return to Previous Page
+      </button>
+      <a href="{% url 'home' %}" class="btn btn-light text-dark fw-semibold">
+        Go to the homepage
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

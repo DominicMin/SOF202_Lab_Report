@@ -1,71 +1,80 @@
 {% extends "base.html" %}
-{% block title %}Booking Officer{% endblock %}
+{% block title %}Booking Officer Dashboard{% endblock %}
+{% block pre_main %}
+  {% include "partials/page_header.html" with title="Booking Officer Dashboard" description="Overview of bookings,reservations, and visitor applications." %}
+{% endblock %}
 {% block content %}
-<h1 class="mb-4">Booking Officer Console</h1>
-<div class="row g-3">
+<div class="row mb-4">
   <div class="col-md-4">
-    <div class="card text-bg-primary">
+    <div class="card text-center h-100">
       <div class="card-body">
-        <h5 class="card-title">Total members</h5>
-        <p class="display-6">{{ member_count }}</p>
+        <h5 class="card-title">Members</h5>
+        <p class="display-4">{{ member_count }}</p>
       </div>
     </div>
   </div>
-  <div class="col-md-8">
-    <div class="card">
-      <div class="card-header">Latest bookings</div>
+  <div class="col-md-4">
+    <div class="card text-center h-100">
       <div class="card-body">
-        <ul class="list-group list-group-flush">
-          {% for booking in recent_bookings %}
-          <li class="list-group-item d-flex justify-content-between">
-            <span>{{ booking.member }} / {{ booking.facility }}</span>
-            <span class="badge bg-secondary">{{ booking.get_status_display }}</span>
-          </li>
-          {% empty %}
-          <li class="list-group-item">No data available.</li>
-          {% endfor %}
-        </ul>
+        <h5 class="card-title">Pending Visitors</h5>
+        <p class="display-4">{{ pending_visitors.count }}</p>
+        <a href="{% url 'management:applications' %}" class="btn btn-sm btn-outline-primary">Review</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center h-100">
+      <div class="card-body">
+        <h5 class="card-title">Actions</h5>
+        <div class="d-grid gap-2">
+          <a href="{% url 'bookings:booking_create' %}" class="btn btn-primary">New Booking</a>
+          <a href="{% url 'bookings:booking_list' %}" class="btn btn-outline-primary">All Bookings</a>
+        </div>
       </div>
     </div>
   </div>
 </div>
-<div class="row g-3 mt-1 mt-lg-4">
-  <div class="col-lg-6">
+
+<div class="row">
+  <div class="col-md-6 mb-4">
     <div class="card h-100">
-      <div class="card-header">Latest reservations</div>
+      <div class="card-header">Recent Bookings</div>
       <div class="card-body">
-        <ul class="list-group list-group-flush">
-          {% for reservation in recent_reservations %}
-          <li class="list-group-item">
-            {{ reservation.facility }} · {{ reservation.start_time|date:"m/d H:i" }} - {{ reservation.end_time|date:"H:i" }}
-          </li>
+        <div class="list-group list-group-flush">
+          {% for booking in recent_bookings %}
+          <a href="{% url 'bookings:reservation_create' booking.pk %}" class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+              <h6 class="mb-1">{{ booking.member.first_name }} {{ booking.member.last_name }}</h6>
+              <small>{{ booking.reservation.reservation_date }}</small>
+            </div>
+            <p class="mb-1">{{ booking.reservation.facility.facility_name }}</p>
+            <small>Status: {{ booking.get_booking_status_display }}</small>
+          </a>
           {% empty %}
-          <li class="list-group-item">No data available.</li>
+          <p class="text-muted">No recent bookings.</p>
           {% endfor %}
-        </ul>
+        </div>
       </div>
     </div>
   </div>
-  <div class="col-lg-6">
+
+  <div class="col-md-6 mb-4">
     <div class="card h-100">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Pending visitor applications</span>
-        <a class="btn btn-sm btn-outline-primary" href="{% url 'management:applications' %}">Manage all</a>
-      </div>
+      <div class="card-header">Recent Reservations</div>
       <div class="card-body">
-        <ul class="list-group list-group-flush">
-          {% for application in pending_visitors %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <div class="fw-semibold">{{ application.full_name }}</div>
-              <small class="text-muted">{{ application.visit_date }}</small>
+        <div class="list-group list-group-flush">
+          {% for reservation in recent_reservations %}
+          <div class="list-group-item">
+            <div class="d-flex w-100 justify-content-between">
+              <h6 class="mb-1">{{ reservation.facility.facility_name }}</h6>
+              <small>{{ reservation.reservation_date }}</small>
             </div>
-            <a class="btn btn-sm btn-outline-secondary" href="{% url 'management:application_review' application.id %}">Review</a>
-          </li>
+            <p class="mb-1">{{ reservation.start_time }} - {{ reservation.end_time }}</p>
+          </div>
           {% empty %}
-          <li class="list-group-item">No pending applications.</li>
+          <p class="text-muted">No recent reservations.</p>
           {% endfor %}
-        </ul>
+        </div>
       </div>
     </div>
   </div>

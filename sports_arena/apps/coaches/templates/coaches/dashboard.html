@@ -1,43 +1,46 @@
 {% extends "base.html" %}
 {% block title %}Coach Dashboard{% endblock %}
 {% block pre_main %}
-  {% include "partials/page_header.html" with title="Coach Dashboard" description="Review your teaching schedule and keep your profile information up to date." %}
+  {% include "partials/page_header.html" with title="Coach Dashboard" description="Manage your training sessions and view enrollments." %}
 {% endblock %}
 {% block content %}
-<div class="d-flex flex-wrap gap-2 mb-4">
-  <a class="btn btn-primary" href="{% url 'coaches:profile' %}">Edit profile</a>
-  <a class="btn btn-outline-secondary" href="{% url 'coaches:sessions' %}">View full schedule</a>
-</div>
-<div class="row g-3">
-  <div class="col-md-4">
+<div class="row">
+  <div class="col-md-4 mb-4">
     <div class="card h-100">
-      <div class="card-header">Profile details</div>
-      <div class="card-body">
-        <p class="mb-1"><strong>ID:</strong> {{ profile.coach_id }}</p>
-        <p class="mb-1"><strong>Phone:</strong> {{ profile.phone|default:"Not provided" }}</p>
-        <p class="mb-1"><strong>Specialty:</strong> {{ profile.specialty|default:"Not provided" }}</p>
-        <p class="mb-0"><strong>Bio:</strong> {{ profile.bio|default:"Not provided" }}</p>
+      <div class="card-body text-center">
+        <h5 class="card-title">Profile</h5>
+        <p class="card-text">{{ profile.first_name }} {{ profile.last_name }}</p>
+        <p class="text-muted">{{ profile.sport_type }} - {{ profile.level }}</p>
+        <a href="{% url 'coaches:profile' %}" class="btn btn-outline-primary btn-sm">Edit Profile</a>
       </div>
     </div>
   </div>
-  <div class="col-md-8">
+
+  <div class="col-md-8 mb-4">
     <div class="card h-100">
-      <div class="card-header">Upcoming sessions</div>
-      <ul class="list-group list-group-flush">
-        {% for session in sessions %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          <div>
-            <div class="fw-semibold">{{ session.title }}</div>
-            <small class="text-muted">{{ session.start_time|date:"m/d H:i" }} · {{ session.facility }}</small>
-          </div>
-          <a class="btn btn-sm btn-outline-secondary" href="{% url 'coaches:session_detail' session.id %}">Details</a>
-        </li>
-        {% empty %}
-        <li class="list-group-item">No sessions scheduled.</li>
-        {% endfor %}
-      </ul>
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Upcoming Sessions</h5>
+        <a href="{% url 'coaches:sessions' %}" class="btn btn-sm btn-outline-primary">View All</a>
+      </div>
+      <div class="card-body">
+        {% if sessions %}
+        <div class="list-group list-group-flush">
+          {% for session in sessions %}
+          <a href="{% url 'coaches:session_detail' session.pk %}" class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+              <h6 class="mb-1">{{ session.reservation.facility.facility_name }}</h6>
+              <small>{{ session.reservation.reservation_date }}</small>
+            </div>
+            <p class="mb-1">{{ session.reservation.start_time }} - {{ session.reservation.end_time }}</p>
+            <small>Capacity: {{ session.max_capacity }}</small>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted">No upcoming sessions scheduled.</p>
+        {% endif %}
+      </div>
     </div>
   </div>
 </div>
 {% endblock %}
-

@@ -2,23 +2,23 @@
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
-from bookings.models import SessionEnrollment, TrainingSession
+from accounts.models import Coach
+from bookings.models import Session_Enrollment, TrainingSession
 from common.permissions import ROLE_COACH, ROLE_MANAGER, role_required
 
-from .forms import CoachProfileForm, SessionNoteForm
+from .forms import CoachProfileForm
 
 
-def _get_coach_profile(request):
-    profile = getattr(request.user, "coach_profile", None)
-    if not profile:
-        raise Http404("Coach profile not found.")
-    return profile
-
+def _get_coach_profile(request) -> Coach:
+    try:
+        return request.user.coach
+    except Coach.DoesNotExist as exc:  # type: ignore[attr-defined]
+        raise Http404("Your account is not linked to a coach profile yet") from exc
 
 @role_required(ROLE_COACH, ROLE_MANAGER)
 def dashboard(request):
     profile = _get_coach_profile(request)
-    sessions = TrainingSession.objects.filter(coach=profile)
+    sessions = TrainingSession.objects.filter(coach=profile).select_related("reservation__facility")
     return render(request, "coaches/dashboard.html", {"profile": profile, "sessions": sessions})
 
 
@@ -38,26 +38,24 @@ def profile_view(request):
 
 @role_required(ROLE_COACH, ROLE_MANAGER)
 def sessions(request):
-    session_list = TrainingSession.objects.filter(coach=_get_coach_profile(request))
+    session_list = TrainingSession.objects.filter(coach=_get_coach_profile(request)).select_related("reservation__facility")
     return render(request, "coaches/session_list.html", {"sessions": session_list})
 
 
 @role_required(ROLE_COACH, ROLE_MANAGER)
 def session_detail(request, session_id: int):
+    profile = _get_coach_profile(request)
+    # Filter by coach to ensure they own the session
     session = get_object_or_404(
-        TrainingSession, pk=session_id, coach=_get_coach_profile(request)
+        TrainingSession, pk=session_id, coach=profile
     )
-    enrollments = SessionEnrollment.objects.filter(session=session).select_related("member")
-    if request.method == "POST":
-        form = SessionNoteForm(request.POST, instance=session)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Session notes saved.")
-            return redirect("coaches:session_detail", session_id=session.id)
-    else:
-        form = SessionNoteForm(instance=session)
+    enrollments = Session_Enrollment.objects.filter(training_session=session).select_related("member")
+    
+    # Note: Session notes functionality removed as per new schema
+    
     return render(
         request,
         "coaches/session_detail.html",
-        {"session": session, "enrollments": enrollments, "form": form},
+        {"session": session, "enrollments": enrollments},
     )
+

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Maintenance Records{% endblock %}
 {% block pre_main %}
-  {% include "partials/page_header.html" with title="Maintenance Records" description="Log upcoming maintenance plans and track work in progress." %}
+  {% include "partials/page_header.html" with title="Maintenance Records" description="Track maintenance schedules for facilities and equipment." %}
 {% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -9,30 +9,66 @@
   <a class="btn btn-primary" href="{% url 'management:maintenance_create' %}">Add record</a>
 </div>
 <div class="table-responsive">
-  <table class="table table-striped align-middle">
+  <table class="table align-middle">
     <thead>
       <tr>
-        <th scope="col">Facility</th>
-        <th scope="col">Description</th>
-        <th scope="col">Scheduled date</th>
+        <th scope="col">ID</th>
+        <th scope="col">Target</th>
+        <th scope="col">Scheduled Date</th>
+        <th scope="col">Completion Date</th>
         <th scope="col">Status</th>
+        <th scope="col">Description</th>
+        <th scope="col" class="text-end">Actions</th>
       </tr>
     </thead>
     <tbody>
       {% for record in records %}
       <tr>
-        <td>{{ record.facility }}</td>
-        <td>{{ record.description }}</td>
+        <td>#{{ record.maintenance_id }}</td>
+        <td>
+          {% if record.facility %}
+          <span class="badge bg-primary">Facility</span> {{ record.facility.facility_name }}
+          {% elif record.equipment %}
+          <span class="badge bg-secondary">Equipment</span> {{ record.equipment.equipment_name }}
+          {% else %}
+          <span class="text-muted">Unknown</span>
+          {% endif %}
+        </td>
         <td>{{ record.scheduled_date }}</td>
-        <td>{{ record.get_status_display }}</td>
+        <td>{{ record.completion_date|default:"-" }}</td>
+        <td>
+          <span
+            class="badge {% if record.status == 'Completed' %}bg-success{% elif record.status == 'Scheduled' %}bg-info text-dark{% elif record.status == 'In_Progress' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+            {{ record.get_status_display }}
+          </span>
+        </td>
+        <td>{{ record.description|truncatechars:50 }}</td>
+        <td class="text-end">
+          <div class="btn-group btn-group-sm" role="group">
+            <form method="post" action="{% url 'management:maintenance_update_status' record.pk %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="status" value="In_Progress">
+              <button type="submit" class="btn btn-outline-primary btn-sm{% if record.status == 'In_Progress' %} active{% endif %}" {% if record.status == 'In_Progress' %} disabled {% endif %}>In Progress</button>
+            </form>
+            <form method="post" action="{% url 'management:maintenance_update_status' record.pk %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="status" value="Completed">
+              <button type="submit" class="btn btn-outline-primary btn-sm {% if record.status == 'Completed' %} active{% endif %}" {% if record.status == 'Completed' %}disabled{% endif %}>Completed</button>
+            </form>
+            <form method="post" action="{% url 'management:maintenance_update_status' record.pk %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="status" value="Cancelled">
+              <button type="submit" class="btn btn-outline-primary btn-sm{% if record.status == 'Cancelled' %} active{% endif %}" {% if record.status == 'Cancelled' %}disabled{% endif %}>Cancelled</button>
+            </form>
+          </div>
+        </td>
       </tr>
       {% empty %}
       <tr>
-        <td colspan="4" class="text-center">No maintenance entries.</td>
+        <td colspan="7" class="text-center">No maintenance records found.</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% endblock %}
-

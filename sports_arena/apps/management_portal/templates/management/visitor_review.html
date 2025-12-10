@@ -1,35 +1,85 @@
 {% extends "base.html" %}
-{% block title %}Review Visitor{% endblock %}
+{% block title %}Review Application{% endblock %}
 {% block pre_main %}
-  {% include "partials/page_header.html" with title="Review Visitor" description="Approve or reject the visitor request below." %}
+  {% include "partials/page_header.html" with title="Review Application" description="Process visitor application." %}
 {% endblock %}
 {% block content %}
-<div class="card mb-4">
-  <div class="card-body">
-    <h4 class="card-title mb-3">{{ application.full_name }}</h4>
-    <p class="mb-1"><strong>Visit date:</strong> {{ application.visit_date }}</p>
-    <p class="mb-1"><strong>Organization:</strong> {{ application.organization|default:"-" }}</p>
-    <p class="mb-0"><strong>Reason:</strong> {{ application.reason }}</p>
+<div class="row">
+  <div class="col-md-6">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Applicant Details</h5>
+      </div>
+      <div class="card-body">
+        <dl class="row">
+          <dt class="col-sm-4">Name</dt>
+          <dd class="col-sm-8">{{ application.first_name }} {{ application.last_name }}</dd>
+
+          <dt class="col-sm-4">IC Number</dt>
+          <dd class="col-sm-8">{{ application.ic_number }}</dd>
+
+          <dt class="col-sm-4">Application Date</dt>
+          <dd class="col-sm-8">{{ application.application_date }}</dd>
+
+          <dt class="col-sm-4">Status</dt>
+          <dd class="col-sm-8">
+            <span
+              class="badge {% if application.status == 'Approved' %}bg-success{% elif application.status == 'Rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+              {{ application.get_status_display }}
+            </span>
+          </dd>
+        </dl>
+
+        {% if application.phone_numbers.exists %}
+        <h6 class="mt-3">Phone Numbers</h6>
+        <ul>
+          {% for phone in application.phone_numbers.all %}
+          <li>{{ phone.phone_number }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if application.email_addresses.exists %}
+        <h6 class="mt-3">Email Addresses</h6>
+        <ul>
+          {% for email in application.email_addresses.all %}
+          <li>{{ email.email_address }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Decision</h5>
+      </div>
+      <div class="card-body">
+        {% if application.status == 'Pending' %}
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="notes" class="form-label">Notes / Rejection Reason</label>
+            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" name="status" value="Approved" class="btn btn-success">Approve</button>
+            <button type="submit" name="status" value="Rejected" class="btn btn-danger">Reject</button>
+          </div>
+        </form>
+        {% else %}
+        <div class="alert alert-info">
+          This application has already been processed by {{ application.approved_by.first_name }} on {{
+          application.approval_date }}.
+          {% if application.reject_reason %}
+          <br><strong>Reason:</strong> {{ application.reject_reason }}
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
   </div>
 </div>
-<form method="post" class="card p-4 shadow-sm">
-  {% csrf_token %}
-  {% if form.non_field_errors %}
-  <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-  {% endif %}
-  {% for field in form %}
-  <div class="mb-3">
-    <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
-    {{ field }}
-    {% if field.errors %}
-    <div class="text-danger small">{{ field.errors|striptags }}</div>
-    {% endif %}
-  </div>
-  {% endfor %}
-  <div class="d-flex gap-2">
-    <button class="btn btn-success" type="submit">Submit decision</button>
-    <a class="btn btn-outline-secondary" href="{% url 'management:applications' %}">Back to list</a>
-  </div>
-</form>
 {% endblock %}
-

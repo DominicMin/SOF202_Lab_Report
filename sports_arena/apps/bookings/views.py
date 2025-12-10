@@ -1,23 +1,24 @@
 ﻿from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
-from accounts.models import MemberProfile
+from accounts.models import Member
 from common.permissions import ROLE_BOOKING_OFFICER, ROLE_MANAGER, role_required
-from management_portal.models import VisitorApplication
+from management_portal.models import Visitor_Application
 
-from .forms import OfficerBookingForm, ReservationEquipmentForm, ReservationForm
-from .models import Booking, Reservation
+from .forms import OfficerBookingForm, ReservationEquipmentForm
+from .models import Booking, Reservation, Reservation_Equipments
 
 
 @role_required(ROLE_BOOKING_OFFICER, ROLE_MANAGER)
 def bo_dashboard(request):
     recent_bookings = (
-        Booking.objects.select_related("member", "facility")
-        .order_by("-created_at")[:5]
+        Booking.objects.select_related("member", "reservation__facility")
+        .order_by("-reservation__reservation_id")[:5]
     )
-    recent_reservations = Reservation.objects.select_related("facility", "booking").order_by("-id")[:5]
-    member_count = MemberProfile.objects.count()
-    pending_visitors = VisitorApplication.objects.filter(status="pending").order_by("visit_date")[:5]
+    # Recent reservations (could be bookings or training sessions)
+    recent_reservations = Reservation.objects.select_related("facility").order_by("-reservation_id")[:5]
+    member_count = Member.objects.count()
+    pending_visitors = Visitor_Application.objects.filter(status="Pending").order_by("application_date")[:5]
     context = {
         "recent_bookings": recent_bookings,
         "recent_reservations": recent_reservations,
@@ -30,9 +31,9 @@ def bo_dashboard(request):
 @role_required(ROLE_BOOKING_OFFICER, ROLE_MANAGER)
 def booking_list(request):
     status = request.GET.get("status")
-    bookings = Booking.objects.select_related("member", "facility")
+    bookings = Booking.objects.select_related("member", "reservation__facility")
     if status:
-        bookings = bookings.filter(status=status)
+        bookings = bookings.filter(booking_status=status)
     return render(request, "bookings/booking_list.html", {"bookings": bookings, "status": status})
 
 
@@ -41,7 +42,17 @@ def booking_create(request):
     if request.method == "POST":
         form = OfficerBookingForm(request.POST)
         if form.is_valid():
-            booking = form.save()
+            reservation = Reservation.objects.create(
+                facility=form.cleaned_data["facility"],
+                reservation_date=form.cleaned_data["reservation_date"],
+                start_time=form.cleaned_data["start_time"],
+                end_time=form.cleaned_data["end_time"],
+            )
+            booking = form.save(commit=False)
+            booking.reservation = reservation
+            # Officers create confirmed bookings directly
+            booking.booking_status = "Confirmed"
+            booking.save()
             messages.success(request, f"Created a booking for {booking.member}.")
             return redirect("bookings:booking_list")
     else:
@@ -51,34 +62,44 @@ def booking_create(request):
 
 @role_required(ROLE_BOOKING_OFFICER, ROLE_MANAGER)
 def reservation_list(request):
-    reservations = Reservation.objects.select_related("booking", "facility")
+    # List all reservations (Bookings + TrainingSessions)
+    reservations = Reservation.objects.select_related("facility").order_by("-reservation_date", "-start_time")
     return render(request, "bookings/reservation_list.html", {"reservations": reservations})
 
 
 @role_required(ROLE_BOOKING_OFFICER, ROLE_MANAGER)
 def reservation_create(request, booking_id: int):
+    # This view is now "Manage Booking" - add equipment or change status
+    # We keep the name reservation_create for URL compatibility or rename it?
+    # The URL is bookings/<id>/reservation/. 
+    # Let's repurpose it to "Process Booking"
     booking = get_object_or_404(Booking, pk=booking_id)
+    
     if request.method == "POST":
-        form = ReservationForm(request.POST)
-        eq_form = ReservationEquipmentForm(request.POST)
-        if form.is_valid() and eq_form.is_valid():
-            reservation = form.save(commit=False)
-            reservation.booking = booking
-            reservation.assigned_officer = request.user
-            reservation.save()
-            equipment = eq_form.save(commit=False)
-            equipment.reservation = reservation
-            equipment.save()
-            booking.status = "approved"
-            booking.save(update_fields=["status"])
-            messages.success(request, "Booking converted to reservation.")
-            return redirect("bookings:reservation_list")
+        # Handle equipment addition or status change
+        if "add_equipment" in request.POST:
+            eq_form = ReservationEquipmentForm(booking.reservation, request.POST)
+            if eq_form.is_valid():
+                eq_form.save()
+                messages.success(request, "Equipment added to booking.")
+                return redirect("bookings:reservation_create", booking_id=booking.pk)
+        elif "confirm_booking" in request.POST:
+            booking.booking_status = "Confirmed"
+            booking.save(update_fields=["booking_status"])
+            messages.success(request, "Booking confirmed.")
+            return redirect("bookings:booking_list")
+        elif "reject_booking" in request.POST:
+            booking.booking_status = "Cancelled" # Or Rejected
+            booking.save(update_fields=["booking_status"])
+            messages.success(request, "Booking rejected/cancelled.")
+            return redirect("bookings:booking_list")
+            
     else:
-        form = ReservationForm(initial={
-            "facility": booking.facility,
-            "start_time": booking.requested_start,
-            "end_time": booking.requested_end,
-        })
-        eq_form = ReservationEquipmentForm()
-    context = {"form": form, "eq_form": eq_form, "booking": booking}
+        eq_form = ReservationEquipmentForm(booking.reservation)
+        
+    context = {
+        "booking": booking,
+        "eq_form": eq_form,
+        "existing_equipment": booking.reservation.equipment_reservations.all()
+    }
     return render(request, "bookings/reservation_form.html", context)

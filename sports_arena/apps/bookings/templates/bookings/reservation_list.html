@@ -1,30 +1,51 @@
 {% extends "base.html" %}
-{% block title %}Reservation List{% endblock %}
-{% block content %}
-<h2 class="mb-4">Reservations</h2>
-<table class="table table-hover">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Facility</th>
-      <th>Reserved time</th>
-      <th>Source booking</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for reservation in reservations %}
-    <tr>
-      <td>{{ reservation.id }}</td>
-      <td>{{ reservation.facility }}</td>
-      <td>{{ reservation.start_time|date:"m/d H:i" }} - {{ reservation.end_time|date:"H:i" }}</td>
-      <td>#{{ reservation.booking_id }}</td>
-    </tr>
-    {% empty %}
-    <tr>
-      <td colspan="4">No data available.</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% block title %}All Reservations{% endblock %}
+{% block pre_main %}
+  {% include "partials/page_header.html" with title="All Reservations" description="View all facility reservations including member bookings and training sessions." %}
 {% endblock %}
-
+{% block content %}
+<div class="table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th scope="col">ID</th>
+        <th scope="col">Type</th>
+        <th scope="col">Facility</th>
+        <th scope="col">Date</th>
+        <th scope="col">Time</th>
+        <th scope="col">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for reservation in reservations %}
+      <tr>
+        <td>#{{ reservation.reservation_id }}</td>
+        <td>
+          {% if reservation.booking %}
+          <span class="badge bg-primary">Member Booking</span>
+          {% elif reservation.training_session %}
+          <span class="badge bg-info text-dark">Training Session</span>
+          {% else %}
+          <span class="badge bg-secondary">Other</span>
+          {% endif %}
+        </td>
+        <td>{{ reservation.facility.facility_name }}</td>
+        <td>{{ reservation.reservation_date }}</td>
+        <td>{{ reservation.start_time }} - {{ reservation.end_time }}</td>
+        <td>
+          {% if reservation.booking %}
+          Member: {{ reservation.booking.member.first_name }} {{ reservation.booking.member.last_name }}
+          {% elif reservation.training_session %}
+          Coach: {{ reservation.training_session.coach.first_name }} {{ reservation.training_session.coach.last_name }}
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" class="text-center">No reservations found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

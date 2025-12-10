@@ -9,8 +9,8 @@
     <thead>
       <tr>
         <th scope="col">Name</th>
-        <th scope="col">Organization</th>
-        <th scope="col">Visit date</th>
+        <th scope="col">IC Number</th>
+        <th scope="col">Application Date</th>
         <th scope="col">Status</th>
         <th scope="col" class="text-end">Action</th>
       </tr>
@@ -18,12 +18,18 @@
     <tbody>
       {% for application in applications %}
       <tr>
-        <td>{{ application.full_name }}</td>
-        <td>{{ application.organization|default:"-" }}</td>
-        <td>{{ application.visit_date }}</td>
-        <td>{{ application.get_status_display }}</td>
+        <td>{{ application.first_name }} {{ application.last_name }}</td>
+        <td>{{ application.ic_number }}</td>
+        <td>{{ application.application_date }}</td>
+        <td>
+          <span
+            class="badge {% if application.status == 'Approved' %}bg-success{% elif application.status == 'Rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+            {{ application.get_status_display }}
+          </span>
+        </td>
         <td class="text-end">
-          <a class="btn btn-sm btn-outline-secondary" href="{% url 'management:application_review' application.id %}">Review</a>
+          <a class="btn btn-sm btn-outline-secondary"
+            href="{% url 'management:application_review' application.pk %}">Review</a>
         </td>
       </tr>
       {% empty %}
@@ -35,4 +41,3 @@
   </table>
 </div>
 {% endblock %}
-

@@ -17,7 +17,6 @@ from common.permissions import (
 )
 
 from .forms import UserRegistrationForm
-from .models import CoachProfile, MemberProfile
 
 
 def _assign_role(user, role_name: str) -> None:
@@ -42,27 +41,61 @@ class RegisterView(View):
             user = form.save()
             role = form.cleaned_data.get("role")
             phone = form.cleaned_data.get("phone")
-            affiliation = form.cleaned_data.get("affiliation")
-            specialty = form.cleaned_data.get("specialty")
+            specialization = form.cleaned_data.get("specialization")
+            
+            from django.utils import timezone
+            from .models import (
+                Coach,
+                Coach_Email,
+                Coach_Phone,
+                Member,
+                Member_Email,
+                Member_Phone,
+                Staff,
+                Student,
+            )
+
             if role == "coach":
                 _assign_role(user, ROLE_COACH)
-                CoachProfile.objects.create(
+                # Create new Coach model
+                coach = Coach.objects.create(
                     user=user,
-                    coach_id=_generate_identifier("C"),
-                    phone=phone or "",
-                    specialty=specialty or "",
+                    first_name=user.first_name,
+                    last_name=user.last_name,
+                    sport_type=specialization or "General",
+                    level="Junior" # Default level
                 )
+                if phone:
+                    Coach_Phone.objects.create(coach=coach, phone_number=phone)
+                if user.email:
+                    Coach_Email.objects.create(coach=coach, email_address=user.email)
+                    
                 messages.success(request, "Coach account created successfully. Please wait for the administrator to assign courses.")
             else:
+                # Both Student and Staff are Members
                 _assign_role(user, ROLE_MEMBER)
-                MemberProfile.objects.create(
+                
+                # Create new Member model (Superclass)
+                member = Member.objects.create(
                     user=user,
-                    member_id=_generate_identifier("M"),
-                    phone=phone or "",
-                    affiliation=affiliation or "",
-                    status="active",
+                    first_name=user.first_name,
+                    last_name=user.last_name,
+                    registration_date=timezone.now().date(),
+                    membership_status="Active"
                 )
-                messages.success(request, "Member account registered successfully.")
+                
+                # Create Subclass based on role
+                if role == "student":
+                    Student.objects.create(member=member, student_id=_generate_identifier("S"))
+                elif role == "staff":
+                    Staff.objects.create(member=member, staff_id=_generate_identifier("ST"))
+                
+                if phone:
+                    Member_Phone.objects.create(member=member, phone_number=phone)
+                if user.email:
+                    Member_Email.objects.create(member=member, email_address=user.email)
+                    
+                messages.success(request, f"{role.capitalize()} account registered successfully.")
             return redirect("accounts:login")
         return render(request, self.template_name, {"form": form})
 

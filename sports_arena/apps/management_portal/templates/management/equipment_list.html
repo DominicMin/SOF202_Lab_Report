@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Equipment{% endblock %}
 {% block pre_main %}
-  {% include "partials/page_header.html" with title="Equipment Inventory" description="Track and maintain all equipment attached to each facility." %}
+  {% include "partials/page_header.html" with title="Equipment Inventory" description="Track and maintain all sports equipment available in the arena." %}
 {% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -13,26 +13,34 @@
     <thead>
       <tr>
         <th scope="col">Name</th>
-        <th scope="col">Facility</th>
-        <th scope="col">Quantity</th>
+        <th scope="col">Type</th>
+        <th scope="col">Total Quantity</th>
         <th scope="col">Status</th>
+        <th scope="col" class="text-end">Action</th>
       </tr>
     </thead>
     <tbody>
       {% for equipment in equipments %}
       <tr>
-        <td>{{ equipment.name }}</td>
-        <td>{{ equipment.facility }}</td>
-        <td>{{ equipment.quantity }}</td>
-        <td>{{ equipment.get_status_display }}</td>
+        <td>{{ equipment.equipment_name }}</td>
+        <td>{{ equipment.type }}</td>
+        <td>{{ equipment.total_quantity }}</td>
+        <td>
+          <span
+            class="badge {% if equipment.status == 'Available' %}bg-success{% elif equipment.status == 'In_Use' %}bg-primary{% elif equipment.status == 'Under_Maintenance' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+            {{ equipment.get_status_display }}
+          </span>
+        </td>
+        <td class="text-end">
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'management:equipment_edit' equipment.pk %}">Edit</a>
+        </td>
       </tr>
       {% empty %}
       <tr>
-        <td colspan="4" class="text-center">No equipment records found.</td>
+        <td colspan="5" class="text-center">No equipment records found.</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% endblock %}
-
