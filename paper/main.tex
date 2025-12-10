@@ -1,0 +1,46 @@
+\documentclass{xum_review}
+%------------------------------------------------------------
+% 文档类xum_review已包含所需的大部分包和代码环境定义
+% 这里只需要添加文档特定的设置
+%------------------------------------------------------------
+
+\begin{document}
+
+\includepdf[pages=-]{cp.pdf}
+
+\pagestyle{plain} % 设置目录页面无页码，但保留页眉
+\tableofcontents
+\clearpage % 使用clearpage确保目录完整显示
+\pagestyle{fancy} % 恢复正常页码样式
+\fancyfoot[C]{Page \thepage\ of \pageref{LastMainPage}} % 使用自定义的最后一页标签
+\setcounter{page}{1}
+
+\addcontentsline{toc}{section}{Project Gantt Chart and Milestones}
+
+
+\input{sec1.tex}
+
+
+
+\newpage
+\bibliography{ref}
+
+
+
+% 添加 Marking Rubric 到目录（无编号，无点线，无页码）
+\label{LastMainPage}  % 标记正文最后一页
+\clearpage
+\pagenumbering{gobble}  % 停止页码显示
+
+% \phantomsection
+% \addtocontents{toc}{\cftpagenumbersoff{section}}
+% \addcontentsline{toc}{section}{Turnitin Percentage Page}
+% \includepdf[pages=2, fitpaper=true]{report.pdf}
+
+\phantomsection
+\addtocontents{toc}{\cftpagenumbersoff{section}}
+\addcontentsline{toc}{section}{Marking Rubric}
+\includepdf[pages=8-9, fitpaper=true]{rubric.pdf}
+
+
+\end{document}
