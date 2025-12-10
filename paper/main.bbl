@@ -1,0 +1,29 @@
+\begin{thebibliography}{}
+
+\bibitem [\protect \citeauthoryear {%
+Frank%
+, Buhmann%
+\BCBL {}\ \BBA {} Basin%
+}{%
+Frank%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2013}}%
+}]{%
+frank2013roleminingprobabilisticmodels}
+\APACinsertmetastar {%
+frank2013roleminingprobabilisticmodels}%
+\begin{APACrefauthors}%
+Frank, M.%
+, Buhmann, J\BPBI M.%
+\BCBL {}\ \BBA {} Basin, D.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2013}{}{}.
+\newblock
+\APACrefbtitle {Role Mining with Probabilistic Models.} {Role mining with probabilistic models.}
+\newblock
+\begin{APACrefURL} \url{https://arxiv.org/abs/1212.4775} \end{APACrefURL}
+\PrintBackRefs{\CurrentBib}
+
+\end{thebibliography}
