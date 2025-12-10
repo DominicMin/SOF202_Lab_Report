@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Visitor Applications{% endblock %}
+{% block pre_main %}
+  {% include "partials/page_header.html" with title="Visitor Applications" description="Read-only view of visitor access requests submitted to the arena." %}
+{% endblock %}
+{% block content %}
+<div class="alert alert-info">
+  Coaches can view visitor applications for awareness. Processing is handled by management staff only.
+</div>
+<div class="table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">IC Number</th>
+        <th scope="col">Application Date</th>
+        <th scope="col">Status</th>
+        <th scope="col" class="text-end">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for application in applications %}
+      <tr>
+        <td>{{ application.first_name }} {{ application.last_name }}</td>
+        <td>{{ application.ic_number }}</td>
+        <td>{{ application.application_date }}</td>
+        <td>
+          <span
+            class="badge {% if application.status == 'Approved' %}bg-success{% elif application.status == 'Rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+            {{ application.get_status_display }}
+          </span>
+        </td>
+        <td class="text-end">
+          <a class="btn btn-sm btn-outline-secondary"
+            href="{% url 'coaches:visitor_application_detail' application.pk %}">View</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="text-center">No visitor applications available.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

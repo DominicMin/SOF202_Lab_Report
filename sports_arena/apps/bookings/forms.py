@@ -305,6 +305,7 @@ class TrainingSessionForm(forms.ModelForm):
         fields = ('coach', 'max_capacity', 'facility', 'reservation_date', 'start_time', 'end_time')
     
     def __init__(self, *args, **kwargs):
+        self.exclude_reservation_id = kwargs.pop("exclude_reservation_id", None)
         super().__init__(*args, **kwargs)
         _apply_form_control(self.fields)
     
@@ -328,7 +329,8 @@ class TrainingSessionForm(forms.ModelForm):
             facility.facility_id,
             reservation_date,
             start_time,
-            end_time
+            end_time,
+            exclude_reservation_id=self.exclude_reservation_id,
         ):
             raise ValidationError(
                 "This time slot conflicts with an existing reservation. Please choose a different time."

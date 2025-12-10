@@ -7,7 +7,7 @@ from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 
 from bookings.forms import TrainingSessionForm
-from bookings.models import Reservation
+from bookings.models import Reservation, TrainingSession
 from common.permissions import ROLE_MANAGER, role_required
 
 from .forms import (
@@ -318,7 +318,103 @@ def training_session_create(request):
             session.reservation = reservation
             session.save()
             messages.success(request, "Training session created successfully.")
-            return redirect("bookings:reservation_list")
+            return redirect("management:training_session_list")
     else:
         form = TrainingSessionForm()
-    return render(request, "management/training_session_form.html", {"form": form})
+    return render(
+        request,
+        "management/training_session_form.html",
+        {"form": form, "is_edit": False},
+    )
+
+
+@role_required(ROLE_MANAGER)
+def training_session_list(request):
+    sessions = TrainingSession.objects.select_related(
+        "reservation__facility",
+        "coach",
+    ).order_by("-reservation__reservation_date", "-reservation__start_time")
+    return render(
+        request,
+        "management/training_session_list.html",
+        {"sessions": sessions},
+    )
+
+
+@role_required(ROLE_MANAGER)
+def training_session_detail(request, pk: int):
+    session = get_object_or_404(
+        TrainingSession.objects.select_related(
+            "reservation__facility",
+            "coach",
+        ).prefetch_related("enrollments__member"),
+        pk=pk,
+    )
+    enrollments = session.enrollments.select_related("member")
+    return render(
+        request,
+        "management/training_session_detail.html",
+        {"session": session, "enrollments": enrollments},
+    )
+
+
+@role_required(ROLE_MANAGER)
+def training_session_edit(request, pk: int):
+    session = get_object_or_404(
+        TrainingSession.objects.select_related("reservation"),
+        pk=pk,
+    )
+    reservation = session.reservation
+    if request.method == "POST":
+        form = TrainingSessionForm(
+            request.POST,
+            instance=session,
+            exclude_reservation_id=reservation.reservation_id,
+        )
+        if form.is_valid():
+            reservation.facility = form.cleaned_data["facility"]
+            reservation.reservation_date = form.cleaned_data["reservation_date"]
+            reservation.start_time = form.cleaned_data["start_time"]
+            reservation.end_time = form.cleaned_data["end_time"]
+            reservation.save()
+
+            session = form.save(commit=False)
+            session.reservation = reservation
+            session.save()
+            messages.success(request, "Training session updated successfully.")
+            return redirect("management:training_session_detail", pk=session.pk)
+    else:
+        form = TrainingSessionForm(
+            instance=session,
+            exclude_reservation_id=reservation.reservation_id,
+            initial={
+                "facility": reservation.facility,
+                "reservation_date": reservation.reservation_date,
+                "start_time": reservation.start_time,
+                "end_time": reservation.end_time,
+            },
+        )
+
+    return render(
+        request,
+        "management/training_session_form.html",
+        {"form": form, "is_edit": True, "training_session": session},
+    )
+
+
+@role_required(ROLE_MANAGER)
+def training_session_delete(request, pk: int):
+    session = get_object_or_404(
+        TrainingSession.objects.select_related("reservation", "coach"),
+        pk=pk,
+    )
+    reservation = session.reservation
+    if request.method == "POST":
+        reservation.delete()  # cascades to training session and enrollments
+        messages.success(request, "Training session deleted.")
+        return redirect("management:training_session_list")
+    return render(
+        request,
+        "management/training_session_confirm_delete.html",
+        {"training_session": session},
+    )

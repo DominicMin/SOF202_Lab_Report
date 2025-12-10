@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from accounts.models import Coach
 from bookings.models import Session_Enrollment, TrainingSession
 from common.permissions import ROLE_COACH, ROLE_MANAGER, role_required
+from management_portal.models import Visitor_Application
 
 from .forms import CoachProfileForm
 
@@ -19,7 +20,16 @@ def _get_coach_profile(request) -> Coach:
 def dashboard(request):
     profile = _get_coach_profile(request)
     sessions = TrainingSession.objects.filter(coach=profile).select_related("reservation__facility")
-    return render(request, "coaches/dashboard.html", {"profile": profile, "sessions": sessions})
+    visitor_applications = Visitor_Application.objects.order_by("-application_date")[:5]
+    return render(
+        request,
+        "coaches/dashboard.html",
+        {
+            "profile": profile,
+            "sessions": sessions,
+            "visitor_applications": visitor_applications,
+        },
+    )
 
 
 @role_required(ROLE_COACH, ROLE_MANAGER)
@@ -59,3 +69,25 @@ def session_detail(request, session_id: int):
         {"session": session, "enrollments": enrollments},
     )
 
+
+@role_required(ROLE_COACH, ROLE_MANAGER)
+def visitor_applications(request):
+    applications = Visitor_Application.objects.all().order_by("-application_date")
+    return render(
+        request,
+        "coaches/visitor_applications.html",
+        {"applications": applications},
+    )
+
+
+@role_required(ROLE_COACH, ROLE_MANAGER)
+def visitor_application_detail(request, application_id: int):
+    application = get_object_or_404(
+        Visitor_Application.objects.prefetch_related("phone_numbers", "email_addresses"),
+        pk=application_id,
+    )
+    return render(
+        request,
+        "coaches/visitor_application_detail.html",
+        {"application": application},
+    )

@@ -19,5 +19,9 @@ urlpatterns = [
     path("maintenance/<int:pk>/status/", views.maintenance_update_status, name="maintenance_update_status"),
     path("applications/", views.visitor_list, name="applications"),
     path("applications/<int:pk>/review/", views.visitor_review, name="application_review"),
+    path("training-sessions/", views.training_session_list, name="training_session_list"),
     path("training-sessions/new/", views.training_session_create, name="training_session_create"),
+    path("training-sessions/<int:pk>/", views.training_session_detail, name="training_session_detail"),
+    path("training-sessions/<int:pk>/edit/", views.training_session_edit, name="training_session_edit"),
+    path("training-sessions/<int:pk>/delete/", views.training_session_delete, name="training_session_delete"),
 ]

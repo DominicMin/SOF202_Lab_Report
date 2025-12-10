@@ -1,7 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Create Training Session{% endblock %}
+{% block title %}{{ is_edit|yesno:"Edit Training Session,Create Training Session" }}{% endblock %}
 {% block pre_main %}
-  {% include "partials/page_header.html" with title="Create Training Session" description="Schedule a new training session with a coach, facility, and time slot." %}
+  {% with page_title=is_edit|yesno:"Edit Training Session,Create Training Session" %}
+    {% if is_edit %}
+      {% include "partials/page_header.html" with title=page_title description="Update an existing training session schedule." %}
+    {% else %}
+      {% include "partials/page_header.html" with title=page_title description="Schedule a new training session with a coach, facility, and time slot." %}
+    {% endif %}
+  {% endwith %}
 {% endblock %}
 {% block content %}
 <form method="post" class="mt-3">
@@ -21,7 +27,14 @@
     {% endif %}
   </div>
   {% endfor %}
-  <button class="btn btn-success" type="submit">Create session</button>
-  <a class="btn btn-link" href="{% url 'bookings:reservation_list' %}">Cancel</a>
+  <div class="d-flex align-items-center gap-2">
+    <button class="btn btn-success" type="submit">
+      {{ is_edit|yesno:"Save changes,Create session" }}
+    </button>
+    <a class="btn btn-link" href="{% url 'management:training_session_list' %}">Cancel</a>
+    {% if is_edit and training_session %}
+    <a class="btn btn-outline-danger ms-auto" href="{% url 'management:training_session_delete' training_session.pk %}">Delete</a>
+    {% endif %}
+  </div>
 </form>
 {% endblock %}

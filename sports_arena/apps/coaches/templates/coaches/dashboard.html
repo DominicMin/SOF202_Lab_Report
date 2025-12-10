@@ -43,4 +43,34 @@
     </div>
   </div>
 </div>
+<div class="row">
+  <div class="col-12 mb-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Visitor Applications (read-only)</h5>
+        <a href="{% url 'coaches:visitor_applications' %}" class="btn btn-sm btn-outline-secondary">View all</a>
+      </div>
+      <div class="card-body">
+        {% if visitor_applications %}
+        <div class="list-group list-group-flush">
+          {% for application in visitor_applications %}
+          <a href="{% url 'coaches:visitor_application_detail' application.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-semibold">{{ application.first_name }} {{ application.last_name }}</div>
+              <small class="text-muted">Applied on {{ application.application_date }}</small>
+            </div>
+            <span
+              class="badge {% if application.status == 'Approved' %}bg-success{% elif application.status == 'Rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+              {{ application.get_status_display }}
+            </span>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">No visitor applications to display.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

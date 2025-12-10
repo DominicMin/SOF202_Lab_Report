@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Delete Training Session{% endblock %}
+{% block pre_main %}
+  {% include "partials/page_header.html" with title="Delete Training Session" description="Removing this session will also remove its reservation and enrollments." %}
+{% endblock %}
+{% block content %}
+<div class="alert alert-warning">
+  <strong>Are you sure?</strong> This will delete the training session for {{ training_session.reservation.facility.facility_name }}
+  on {{ training_session.reservation.reservation_date }} ({{ training_session.reservation.start_time }} - {{ training_session.reservation.end_time }}).
+</div>
+<form method="post" class="d-flex gap-2">
+  {% csrf_token %}
+  <button class="btn btn-danger" type="submit">Yes, delete it</button>
+  <a class="btn btn-secondary" href="{% url 'management:training_session_detail' training_session.pk %}">Cancel</a>
+</form>
+{% endblock %}

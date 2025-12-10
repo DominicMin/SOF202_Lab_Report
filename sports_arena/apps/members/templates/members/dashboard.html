@@ -50,13 +50,24 @@
           {% for enrollment in enrollments %}
           <div class="list-group-item px-0">
             <div class="d-flex w-100 justify-content-between">
-              <h6 class="mb-1">{{ enrollment.training_session.coach.first_name }} {{
-                enrollment.training_session.coach.last_name }}</h6>
-              <small class="text-muted">{{ enrollment.training_session.reservation.reservation_date }}</small>
+              <div>
+                <h6 class="mb-1">
+                  {{ enrollment.training_session.coach.first_name }}
+                  {{ enrollment.training_session.coach.last_name }}
+                </h6>
+                <div class="text-muted small">
+                  {{ enrollment.training_session.reservation.facility.facility_name }}
+                </div>
+                <div class="text-muted small">
+                  {{ enrollment.training_session.reservation.start_time|time:"H:i" }}
+                  -
+                  {{ enrollment.training_session.reservation.end_time|time:"H:i" }}
+                </div>
+              </div>
+              <small class="text-muted text-end">
+                {{ enrollment.training_session.reservation.reservation_date|date:"M d, Y" }}
+              </small>
             </div>
-            <p class="mb-1">{{ enrollment.training_session.reservation.facility.facility_name }}</p>
-            <small>{{ enrollment.training_session.reservation.start_time }} - {{
-              enrollment.training_session.reservation.end_time }}</small>
           </div>
           {% endfor %}
         </div>

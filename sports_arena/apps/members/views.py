@@ -2,6 +2,7 @@
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.db.models import Q
 
 from accounts.models import Member
 from bookings.forms import MemberBookingForm
@@ -22,9 +23,25 @@ def _get_profile(request) -> Member:
 def dashboard(request):
     profile = _get_profile(request)
     bookings = profile.bookings.select_related("reservation__facility")[:5]
+    now = timezone.localtime()
+    today = now.date()
+    current_time = now.time()
     enrollments = (
-        profile.session_enrollments.select_related("training_session__reservation__facility", "training_session__coach")
-        .order_by("training_session__reservation__start_time")[:5]
+        profile.session_enrollments.select_related(
+            "training_session__reservation__facility",
+            "training_session__coach",
+        )
+        .filter(
+            Q(training_session__reservation__reservation_date__gt=today)
+            | (
+                Q(training_session__reservation__reservation_date=today)
+                & Q(training_session__reservation__start_time__gte=current_time)
+            )
+        )
+        .order_by(
+            "training_session__reservation__reservation_date",
+            "training_session__reservation__start_time",
+        )[:5]
     )
     return render(
         request,
@@ -92,11 +109,19 @@ def booking_cancel(request, booking_id: int):
 @role_required(ROLE_MEMBER, ROLE_COACH)
 def training_list(request):
     profile = _get_profile(request)
-    # Filter sessions starting from now
-    # TrainingSession inherits from Reservation, so we query via reservation fields
-    sessions = TrainingSession.objects.select_related("coach", "reservation__facility").filter(
-        reservation__start_time__gte=timezone.now().time(),
-        reservation__reservation_date__gte=timezone.now().date()
+    # Filter sessions that are upcoming: date in future OR same-day with a future start time
+    now = timezone.localtime()
+    today = now.date()
+    current_time = now.time()
+    sessions = (
+        TrainingSession.objects.select_related("coach", "reservation__facility")
+        .filter(
+            Q(reservation__reservation_date__gt=today)
+            | (
+                Q(reservation__reservation_date=today)
+                & Q(reservation__start_time__gte=current_time)
+            )
+        )
     )
     
     # Get existing enrollment session IDs

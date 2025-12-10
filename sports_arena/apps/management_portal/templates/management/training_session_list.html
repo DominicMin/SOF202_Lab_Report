@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Training Sessions{% endblock %}
+{% block pre_main %}
+  {% include "partials/page_header.html" with title="Training Sessions" description="Manage all coach-led training sessions." %}
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Training Sessions</h2>
+  <a class="btn btn-primary" href="{% url 'management:training_session_create' %}">Create session</a>
+</div>
+<div class="table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th scope="col">Facility</th>
+        <th scope="col">Coach</th>
+        <th scope="col">Date</th>
+        <th scope="col">Time</th>
+        <th scope="col">Capacity</th>
+        <th scope="col" class="text-end">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for session in sessions %}
+      <tr>
+        <td>{{ session.reservation.facility.facility_name }}</td>
+        <td>{{ session.coach.first_name }} {{ session.coach.last_name }}</td>
+        <td>{{ session.reservation.reservation_date }}</td>
+        <td>{{ session.reservation.start_time }} - {{ session.reservation.end_time }}</td>
+        <td>{{ session.max_capacity }}</td>
+        <td class="text-end">
+          <div class="btn-group btn-group-sm">
+            <a class="btn btn-outline-secondary" href="{% url 'management:training_session_detail' session.pk %}">View</a>
+            <a class="btn btn-outline-primary" href="{% url 'management:training_session_edit' session.pk %}">Edit</a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" class="text-center">No training sessions scheduled.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
