@@ -142,13 +142,14 @@
 }
 
 % 设置图片编号为章节.序号格式
-\renewcommand{\thefigure}{\thesection.\arabic{figure}}
+\renewcommand{\thefigure}{\arabic{section}.\arabic{figure}}
 % 设置表格编号为章节.序号格式
-\renewcommand{\thetable}{\thesection.\arabic{table}}
+\renewcommand{\thetable}{\arabic{section}.\arabic{table}}
 
 % 确保每个section开始时重置图表计数器
 \@addtoreset{figure}{section}
 \@addtoreset{table}{section}
+
 
 % 额外需要的包
 \RequirePackage{titlesec}
@@ -164,6 +165,13 @@
 \RequirePackage{pdfpages}
 \RequirePackage{longtable}
 \RequirePackage{booktabs}
+
+% 确保每个section开始时重置代码列表计数器
+\@addtoreset{lstlisting}{section}
+
+% 使用caption包强制设定格式，绕过listings可能的内部逻辑
+\DeclareCaptionLabelFormat{sectionlisting}{Listing \arabic{section}.\arabic{lstlisting}}
+\captionsetup[lstlisting]{labelformat=sectionlisting}
 
 % XeLaTeX字体支持
 \setmonofont{Consolas}[Scale=0.9]

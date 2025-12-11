@@ -1,0 +1,652 @@
+\section{Triggering}
+
+To ensure data integrity and enforce business rules at the database level, we verified several triggers covering different event types (INSERT and UPDATE). The following sections detail the implementation and verification of these triggers.
+
+\subsection{Implemented Triggers}
+
+\subsubsection{Booking Guardrails}
+These triggers ensure a member cannot have more than 2 pending bookings, sessions do not exceed 3 hours, and bookings are made within a valid 7-day window.
+
+\begin{sql}[caption={Trigger: Booking Before Insert Checks}]
+CREATE TRIGGER `booking_bi_guardrails` BEFORE INSERT ON `booking` FOR EACH ROW BEGIN
+DECLARE v_pending INT DEFAULT 0;
+DECLARE v_reservation_date DATE;
+DECLARE v_start TIME;
+DECLARE v_end TIME;
+DECLARE v_duration_minutes INT;
+
+SELECT COUNT(*) INTO v_pending
+FROM `booking`
+WHERE `Member_ID` = NEW.Member_ID
+    AND `Booking_Status` = 'Pending';
+
+IF NEW.Booking_Status = 'Pending' AND v_pending >= 2 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Member already has 2 pending bookings';
+END IF;
+
+SELECT `Reservation_Date`, `Start_Time`, `End_Time`
+    INTO v_reservation_date, v_start, v_end
+FROM `reservation`
+WHERE `Reservation_ID` = NEW.Reservation_ID;
+
+IF v_reservation_date IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Reservation not found for booking';
+END IF;
+
+SET v_duration_minutes = TIMESTAMPDIFF(MINUTE, v_start, v_end);
+
+IF v_duration_minutes > 180 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Single booking session cannot exceed 3 hours';
+END IF;
+
+IF v_reservation_date < CURDATE() THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Cannot book for past dates';
+END IF;
+
+IF v_reservation_date > DATE_ADD(CURDATE(), INTERVAL 7 DAY) THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Bookings can only be made up to 7 days in advance';
+END IF;
+END;
+\end{sql}
+
+\begin{sql}[caption={Trigger: Booking Before Update Checks}]
+CREATE TRIGGER `booking_bu_guardrails` BEFORE UPDATE ON `booking` FOR EACH ROW BEGIN
+DECLARE v_pending INT DEFAULT 0;
+DECLARE v_reservation_date DATE;
+DECLARE v_start TIME;
+DECLARE v_end TIME;
+DECLARE v_duration_minutes INT;
+
+SELECT COUNT(*) INTO v_pending
+FROM `booking`
+WHERE `Member_ID` = NEW.Member_ID
+    AND `Booking_Status` = 'Pending'
+    AND `Reservation_ID` <> OLD.Reservation_ID;
+
+IF NEW.Booking_Status = 'Pending' AND v_pending >= 2 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Member already has 2 pending bookings';
+END IF;
+
+IF NEW.Reservation_ID <> OLD.Reservation_ID THEN
+    SELECT `Reservation_Date`, `Start_Time`, `End_Time`
+    INTO v_reservation_date, v_start, v_end
+    FROM `reservation`
+    WHERE `Reservation_ID` = NEW.Reservation_ID;
+
+    IF v_reservation_date IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Reservation not found for booking'; 
+    END IF;
+
+    SET v_duration_minutes = TIMESTAMPDIFF(MINUTE, v_start, v_end);
+
+    IF v_duration_minutes > 180 THEN
+    SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Single booking session cannot exceed 3 hours';
+    END IF;
+
+    IF v_reservation_date < CURDATE() THEN
+    SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cannot book for past dates';
+    END IF;
+
+    IF v_reservation_date > DATE_ADD(CURDATE(), INTERVAL 7 DAY) THEN
+    SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Bookings can only be made up to 7 days in advance';
+    END IF;
+END IF;
+END;
+\end{sql}
+
+\subsubsection{Maintenance XOR Constraints}
+These triggers enforce that a maintenance record targets either a facility OR equipment, but not both and not neither.
+
+\begin{sql}[caption={Trigger: Maintenance Before Insert XOR Constraint}]
+CREATE TRIGGER `maintenance_bi_xor` BEFORE INSERT ON `maintenance` FOR EACH ROW BEGIN
+IF (NEW.Facility_ID IS NULL AND NEW.Equipment_ID IS NULL)
+    OR (NEW.Facility_ID IS NOT NULL AND NEW.Equipment_ID IS NOT NULL) THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Maintenance must target either a facility or equipment (exclusively)';
+END IF;
+END;
+\end{sql}
+
+\begin{sql}[caption={Trigger: Maintenance Before Update XOR Constraint}]
+CREATE TRIGGER `maintenance_bu_xor` BEFORE UPDATE ON `maintenance` FOR EACH ROW BEGIN
+IF (NEW.Facility_ID IS NULL AND NEW.Equipment_ID IS NULL)
+    OR (NEW.Facility_ID IS NOT NULL AND NEW.Equipment_ID IS NOT NULL) THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Maintenance must target either a facility or equipment (exclusively)';
+END IF;
+END;
+\end{sql}
+
+\subsubsection{Reservation Overlap and Availability}
+These triggers prevent overlapping reservations for the same facility and ensure the facility is available and not under maintenance.
+
+\begin{sql}[caption={Trigger: Reservation Before Insert Checks}]
+CREATE TRIGGER `reservation_bi_guardrails` BEFORE INSERT ON `reservation` FOR EACH ROW BEGIN
+DECLARE v_facility_status VARCHAR(20);
+DECLARE v_conflicts INT DEFAULT 0;
+DECLARE v_maintenance INT DEFAULT 0;
+
+SELECT `Status` INTO v_facility_status
+FROM `facility`
+WHERE `Facility_ID` = NEW.Facility_ID
+FOR UPDATE;
+
+IF v_facility_status IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Facility does not exist for this reservation';
+END IF;
+
+IF NEW.Start_Time >= NEW.End_Time THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Reservation start time must be earlier than end time';
+END IF;
+
+IF v_facility_status <> 'Available' THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Facility is not available for reservation';
+END IF;
+
+SELECT COUNT(*) INTO v_maintenance
+FROM `maintenance` m
+WHERE m.`Facility_ID` = NEW.Facility_ID
+    AND m.`Scheduled_Date` = NEW.Reservation_Date
+    AND m.`Status` IN ('Scheduled', 'In_Progress', 'In Progress');
+
+IF v_maintenance > 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Facility has maintenance scheduled for the requested date';
+END IF;
+
+SELECT COUNT(*) INTO v_conflicts
+FROM `reservation` r
+WHERE r.`Facility_ID` = NEW.Facility_ID
+    AND r.`Reservation_Date` = NEW.Reservation_Date
+    AND NOT (NEW.End_Time <= r.`Start_Time` OR NEW.Start_Time >= r.`End_Time`);
+
+IF v_conflicts > 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Reservation overlaps with an existing booking for this facility';
+END IF;
+END;
+\end{sql}
+
+\begin{sql}[caption={Trigger: Reservation Before Update Checks}]
+CREATE TRIGGER `reservation_bu_guardrails` BEFORE UPDATE ON `reservation` FOR EACH ROW BEGIN
+DECLARE v_facility_status VARCHAR(20);
+DECLARE v_conflicts INT DEFAULT 0;
+DECLARE v_maintenance INT DEFAULT 0;
+
+SELECT `Status` INTO v_facility_status
+FROM `facility`
+WHERE `Facility_ID` = NEW.Facility_ID
+FOR UPDATE;
+
+IF v_facility_status IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Facility does not exist for this reservation';
+END IF;
+
+IF NEW.Start_Time >= NEW.End_Time THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Reservation start time must be earlier than end time';
+END IF;
+
+IF v_facility_status <> 'Available' THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Facility is not available for reservation';
+END IF;
+
+SELECT COUNT(*) INTO v_maintenance
+FROM `maintenance` m
+WHERE m.`Facility_ID` = NEW.Facility_ID
+    AND m.`Scheduled_Date` = NEW.Reservation_Date
+    AND m.`Status` IN ('Scheduled', 'In_Progress', 'In Progress');
+
+IF v_maintenance > 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Facility has maintenance scheduled for the requested date';
+END IF;
+
+SELECT COUNT(*) INTO v_conflicts
+FROM `reservation` r
+WHERE r.`Facility_ID` = NEW.Facility_ID
+    AND r.`Reservation_Date` = NEW.Reservation_Date
+    AND r.`Reservation_ID` <> OLD.Reservation_ID
+    AND NOT (NEW.End_Time <= r.`Start_Time` OR NEW.Start_Time >= r.`End_Time`);
+
+IF v_conflicts > 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Reservation overlaps with an existing booking for this facility';
+END IF;
+END;
+\end{sql}
+
+\subsubsection{Reservation Equipment Availability}
+These triggers ensure enough equipment stock is available for a reservation, accounting for other reservations and maintenance.
+
+\begin{sql}[caption={Trigger: Reservation Equipments Before Insert Checks}]
+CREATE TRIGGER `reservation_equipments_bi_guardrails` BEFORE INSERT ON `reservation_equipments` FOR EACH ROW BEGIN
+DECLARE v_total INT;
+DECLARE v_reserved INT DEFAULT 0;
+DECLARE v_available INT;
+DECLARE v_status VARCHAR(20);
+DECLARE v_reservation_date DATE;
+DECLARE v_start TIME;
+DECLARE v_end TIME;
+DECLARE v_maintenance INT DEFAULT 0;
+
+SELECT r.`Reservation_Date`, r.`Start_Time`, r.`End_Time`
+    INTO v_reservation_date, v_start, v_end
+FROM `reservation` r
+WHERE r.`Reservation_ID` = NEW.Reservation_ID
+FOR UPDATE;
+
+IF v_reservation_date IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Reservation not found for equipment assignment';
+END IF;
+
+SELECT e.`Total_Quantity`, e.`Status`
+    INTO v_total, v_status
+FROM `equipment` e
+WHERE e.`Equipment_ID` = NEW.Equipment_ID
+FOR UPDATE;
+
+IF v_status IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Equipment does not exist';
+END IF;
+
+IF v_status <> 'Available' THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Equipment is not available for reservation';
+END IF;
+
+IF NEW.Quantity <= 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Quantity must be positive';
+END IF;
+
+SELECT COUNT(*) INTO v_maintenance
+FROM `maintenance` m
+WHERE m.`Equipment_ID` = NEW.Equipment_ID
+    AND m.`Scheduled_Date` = v_reservation_date
+    AND m.`Status` IN ('Scheduled', 'In_Progress', 'In Progress');
+
+SELECT COALESCE(SUM(re2.`Quantity`), 0) INTO v_reserved
+FROM `reservation_equipments` re2
+JOIN `reservation` r2 ON r2.`Reservation_ID` = re2.`Reservation_ID`
+WHERE re2.`Equipment_ID` = NEW.Equipment_ID
+    AND r2.`Reservation_Date` = v_reservation_date
+    AND NOT (v_end <= r2.`Start_Time` OR v_start >= r2.`End_Time`);
+
+SET v_available = v_total - v_reserved - v_maintenance;
+
+IF NEW.Quantity > v_available THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Requested equipment exceeds available quantity';
+END IF;
+END;
+\end{sql}
+
+\begin{sql}[caption={Trigger: Reservation Equipments Before Update Checks}]
+CREATE TRIGGER `reservation_equipments_bu_guardrails` BEFORE UPDATE ON `reservation_equipments` FOR EACH ROW BEGIN
+DECLARE v_total INT;
+DECLARE v_reserved INT DEFAULT 0;
+DECLARE v_available INT;
+DECLARE v_status VARCHAR(20);
+DECLARE v_reservation_date DATE;
+DECLARE v_start TIME;
+DECLARE v_end TIME;
+DECLARE v_maintenance INT DEFAULT 0;
+
+SELECT r.`Reservation_Date`, r.`Start_Time`, r.`End_Time`
+    INTO v_reservation_date, v_start, v_end
+FROM `reservation` r
+WHERE r.`Reservation_ID` = NEW.Reservation_ID
+FOR UPDATE;
+
+IF v_reservation_date IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Reservation not found for equipment assignment';
+END IF;
+
+SELECT e.`Total_Quantity`, e.`Status`
+    INTO v_total, v_status
+FROM `equipment` e
+WHERE e.`Equipment_ID` = NEW.Equipment_ID
+FOR UPDATE;
+
+IF v_status IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Equipment does not exist';
+END IF;
+
+IF v_status <> 'Available' THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Equipment is not available for reservation';
+END IF;
+
+IF NEW.Quantity <= 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Quantity must be positive';
+END IF;
+
+SELECT COUNT(*) INTO v_maintenance
+FROM `maintenance` m
+WHERE m.`Equipment_ID` = NEW.Equipment_ID
+    AND m.`Scheduled_Date` = v_reservation_date
+    AND m.`Status` IN ('Scheduled', 'In_Progress', 'In Progress');
+
+SELECT COALESCE(SUM(re2.`Quantity`), 0) INTO v_reserved
+FROM `reservation_equipments` re2
+JOIN `reservation` r2 ON r2.`Reservation_ID` = re2.`Reservation_ID`
+WHERE re2.`Equipment_ID` = NEW.Equipment_ID
+    AND r2.`Reservation_Date` = v_reservation_date
+    AND NOT (v_end <= r2.`Start_Time` OR v_start >= r2.`End_Time`)
+    AND re2.`id` <> OLD.`id`;
+
+SET v_available = v_total - v_reserved - v_maintenance;
+
+IF NEW.Quantity > v_available THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Requested equipment exceeds available quantity';
+END IF;
+END;
+\end{sql}
+
+\subsubsection{Session Enrollment Capacity}
+These triggers prevent enrollment if the training session has reached its maximum capacity.
+
+\begin{sql}[caption={Trigger: Session Enrollment Before Insert Capacity Check}]
+CREATE TRIGGER `session_enrollment_bi_capacity` BEFORE INSERT ON `session_enrollment` FOR EACH ROW BEGIN
+DECLARE v_capacity INT;
+DECLARE v_current INT DEFAULT 0;
+
+SELECT `Max_Capacity` INTO v_capacity
+FROM `training_session`
+WHERE `Reservation_ID` = NEW.Reservation_ID
+FOR UPDATE;
+
+IF v_capacity IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Training session not found for enrollment';
+END IF;
+
+IF v_capacity <= 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Training session has no available capacity';
+END IF;
+
+SELECT COUNT(*) INTO v_current
+FROM `session_enrollment`
+WHERE `Reservation_ID` = NEW.Reservation_ID;
+
+IF v_current >= v_capacity THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Training session is full';
+END IF;
+END;
+\end{sql}
+
+\begin{sql}[caption={Trigger: Session Enrollment Before Update Capacity Check}]
+CREATE TRIGGER `session_enrollment_bu_capacity` BEFORE UPDATE ON `session_enrollment` FOR EACH ROW BEGIN
+DECLARE v_capacity INT;
+DECLARE v_current INT DEFAULT 0;
+
+SELECT `Max_Capacity` INTO v_capacity
+FROM `training_session`
+WHERE `Reservation_ID` = NEW.Reservation_ID
+FOR UPDATE;
+
+IF v_capacity IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Training session not found for enrollment';
+END IF;
+
+IF v_capacity <= 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Training session has no available capacity';
+END IF;
+
+SELECT COUNT(*) INTO v_current
+FROM `session_enrollment`
+WHERE `Reservation_ID` = NEW.Reservation_ID
+    AND `id` <> OLD.`id`;
+
+IF v_current >= v_capacity THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Training session is full';
+END IF;
+END;
+\end{sql}
+
+\subsection{Evidence Scenarios}
+
+\subsubsection{Scenario A: Reservation Overlap is Blocked}
+We first create two non-overlapping reservations for facility 4 (tomorrow).
+\begin{sql}[caption={Scenario A1 SQL: Create two non-overlapping reservations}]
+SET @res_facility := 4;
+SET @res_date := DATE_ADD(CURDATE(), INTERVAL 1 DAY);
+INSERT INTO reservation (Reservation_Date, Start_Time, End_Time, Facility_ID)
+VALUES (@res_date, '10:00:00', '11:00:00', @res_facility);
+SET @res_ok_1 := LAST_INSERT_ID();
+INSERT INTO reservation (Reservation_Date, Start_Time, End_Time, Facility_ID)
+VALUES (@res_date, '12:00:00', '13:00:00', @res_facility);
+SET @res_ok_2 := LAST_INSERT_ID();
+SELECT 'current reservations' AS step, Reservation_ID, Start_Time, End_Time
+FROM reservation WHERE Reservation_ID IN (@res_ok_1, @res_ok_2) ORDER BY Reservation_ID;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/A1.png}
+    \caption{Scenario A1: Successful creation of non-overlapping reservations}
+\end{figure}
+
+Then, we attempt an overlapping insert, which should fail.
+\begin{sql}[caption={Scenario A2 SQL: Attempt overlapping reservation}]
+INSERT INTO reservation (Reservation_Date, Start_Time, End_Time, Facility_ID)
+VALUES (@res_date, '10:30:00', '11:30:00', @res_facility);
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/A2.png}
+    \caption{Scenario A2: Overlapping reservation attempt blocked}
+\end{figure}
+
+Confirmation that only the valid rows remain:
+\begin{sql}[caption={Scenario A3 SQL: Verify reservations found}]
+SELECT Reservation_ID, Start_Time, End_Time
+FROM reservation
+WHERE Facility_ID = @res_facility AND Reservation_Date = @res_date
+ORDER BY Reservation_ID;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/A3.png}
+    \caption{Scenario A3: Verification of existing reservations}
+\end{figure}
+
+\subsubsection{Scenario B: Booking Pending Limit}
+Limit max 2 pending bookings per member. Prepare three future reservations for member 1:
+\begin{sql}[caption={Scenario B1 SQL: Prepare three reservations}]
+SET @booking_member := 1;
+SET @booking_date := DATE_ADD(CURDATE(), INTERVAL 2 DAY);
+INSERT INTO reservation (Reservation_Date, Start_Time, End_Time, Facility_ID)
+VALUES (@booking_date, '09:00:00', '10:00:00', 5);
+SET @book_res_1 := LAST_INSERT_ID();
+INSERT INTO reservation (Reservation_Date, Start_Time, End_Time, Facility_ID)
+VALUES (@booking_date, '10:10:00', '11:10:00', 5);
+SET @book_res_2 := LAST_INSERT_ID();
+INSERT INTO reservation (Reservation_Date, Start_Time, End_Time, Facility_ID)
+VALUES (@booking_date, '11:20:00', '12:20:00', 5);
+SET @book_res_3 := LAST_INSERT_ID();
+SELECT 'prep reservations' AS step, Reservation_ID, Reservation_Date, Start_Time, End_Time
+FROM reservation WHERE Reservation_ID IN (@book_res_1, @book_res_2, @book_res_3)
+ORDER BY Reservation_ID;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/B1.png}
+    \caption{Scenario B1: Preparation of reservations}
+\end{figure}
+
+Insert two Pending bookings (allowed) and count:
+\begin{sql}[caption={Scenario B2 SQL: Insert two pending bookings}]
+INSERT INTO booking (Reservation_ID, Booking_Status, Member_ID)
+VALUES (@book_res_1, 'Pending', @booking_member);
+INSERT INTO booking (Reservation_ID, Booking_Status, Member_ID)
+VALUES (@book_res_2, 'Pending', @booking_member);
+SELECT 'after two pendings' AS step, COUNT(*) AS pending_count
+FROM booking WHERE Member_ID = @booking_member AND Booking_Status = 'Pending';
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/B2.png}
+    \caption{Scenario B2: Two pending bookings successfully created}
+\end{figure}
+
+Attempt third Pending (should fail) and verify list:
+\begin{sql}[caption={Scenario B3 SQL: Attempt third pending booking}]
+INSERT INTO booking (Reservation_ID, Booking_Status, Member_ID)
+VALUES (@book_res_3, 'Pending', @booking_member);
+SELECT Reservation_ID, Booking_Status
+FROM booking WHERE Member_ID = @booking_member ORDER BY Reservation_ID;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/B3.png}
+    \caption{Scenario B3: Third pending booking blocked}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/B4.png}
+    \caption{Scenario B4: Verification of booking list}
+\end{figure}
+
+\subsubsection{Scenario C: Maintenance XOR Constraint}
+Maintenance must target either a facility or equipment, but not both.
+\begin{sql}[caption={Scenario C SQL: Maintenance Insert Tests}]
+INSERT INTO maintenance (Scheduled_Date, Completion_Date, Status, Description, Equipment_ID, Facility_ID)
+VALUES (DATE_ADD(CURDATE(), INTERVAL 4 DAY), NULL, 'Scheduled', 'Invalid: none', NULL, NULL); -- expect error
+
+INSERT INTO maintenance (Scheduled_Date, Completion_Date, Status, Description, Equipment_ID, Facility_ID)
+VALUES (DATE_ADD(CURDATE(), INTERVAL 4 DAY), NULL, 'Scheduled', 'Invalid: both', 2, 4); -- expect error
+
+INSERT INTO maintenance (Scheduled_Date, Completion_Date, Status, Description, Equipment_ID, Facility_ID)
+VALUES (DATE_ADD(CURDATE(), INTERVAL 4 DAY), NULL, 'Scheduled', 'Valid facility maintenance', NULL, 4);
+SELECT 'valid maintenance inserted' AS step, Maintenance_ID, Equipment_ID, Facility_ID, Scheduled_Date, Status
+FROM maintenance ORDER BY Maintenance_ID DESC LIMIT 1;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/C1.png}
+    \caption{Scenario C1: Invalid maintenance keys blocked}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/C2.png}
+    \caption{Scenario C2: Valid maintenance entry inserted}
+\end{figure}
+
+\subsubsection{Scenario D: Equipment Availability}
+Check stock availability during reservation. Setup overlapping reservations for Equipment 2 and check stock:
+\begin{sql}[caption={Scenario D1 SQL: Setup and Stock Check}]
+SET @equip_date := DATE_ADD(CURDATE(), INTERVAL 2 DAY);
+INSERT INTO reservation (Reservation_Date, Start_Time, End_Time, Facility_ID)
+VALUES (@equip_date, '14:00:00', '15:00:00', 8);
+SET @equip_res_1 := LAST_INSERT_ID();
+INSERT INTO reservation (Reservation_Date, Start_Time, End_Time, Facility_ID)
+VALUES (@equip_date, '14:30:00', '15:30:00', 5);
+SET @equip_res_2 := LAST_INSERT_ID();
+SELECT 'equipment stock snapshot' AS step, Equipment_ID, Equipment_Name, Status, Total_Quantity
+FROM equipment WHERE Equipment_ID = 2;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/D1.png}
+    \caption{Scenario D1: Equipment stock snapshot}
+\end{figure}
+
+Valid assign, then over-allocate (should fail):
+\begin{sql}[caption={Scenario D2 SQL: Assignment Tests}]
+INSERT INTO reservation_equipments (Quantity, Equipment_ID, Reservation_ID)
+VALUES (5, 2, @equip_res_1);
+SET @equip_row := LAST_INSERT_ID();
+SELECT 'after valid assign' AS step, id, Equipment_ID, Reservation_ID, Quantity
+FROM reservation_equipments WHERE id = @equip_row;
+
+INSERT INTO reservation_equipments (Quantity, Equipment_ID, Reservation_ID)
+VALUES (16, 2, @equip_res_2); -- expect error
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/D2.png}
+    \caption{Scenario D2: Valid equipment assignment}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/D3.png}
+    \caption{Scenario D3: Over-allocation blocked}
+\end{figure}
+
+\subsubsection{Scenario E: Session Enrollment Capacity}
+Validate max capacity. Create one-seat session, first enrollment succeeds, second fails:
+\begin{sql}[caption={Scenario E SQL: Session Capacity Tests}]
+SET @session_date := DATE_ADD(CURDATE(), INTERVAL 3 DAY);
+INSERT INTO reservation (Reservation_Date, Start_Time, End_Time, Facility_ID)
+VALUES (@session_date, '16:00:00', '17:00:00', 4);
+SET @session_res_full := LAST_INSERT_ID();
+INSERT INTO training_session (Reservation_ID, Max_Capacity, Coach_ID)
+VALUES (@session_res_full, 1, 1);
+SELECT 'session created' AS step, Reservation_ID, Max_Capacity, Coach_ID
+FROM training_session WHERE Reservation_ID = @session_res_full;
+
+INSERT INTO session_enrollment (Member_ID, Reservation_ID)
+VALUES (1, @session_res_full);
+SELECT 'after first enrollment' AS step, id, Member_ID, Reservation_ID
+FROM session_enrollment WHERE Reservation_ID = @session_res_full;
+
+INSERT INTO session_enrollment (Member_ID, Reservation_ID)
+VALUES (2, @session_res_full); -- expect error
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/E1.png}
+    \caption{Scenario E1: Session creation}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/E2.png}
+    \caption{Scenario E2: First enrollment successful}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure/pic/E3.png}
+    \caption{Scenario E3: Second enrollment blocked due to capacity}
+\end{figure}
