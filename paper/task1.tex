@@ -1,6 +1,165 @@
+\setcounter{section}{0} % ensure this section is numbered as Task 1
 \section{Database Integrity}
 
-The university sports complex currently relies on outdated methods such as
-manual registration and spreadsheets to manage equipment, facilities, coaches,
-and bookings. This has led to issues including double bookings, missing records,
-and difficulties in tracking equipment maintenance\citep{frank2013roleminingprobabilisticmodels}.
+\subsection{Objective and Context}
+In a sports arena reservation system, data integrity is not a theoretical concern; it directly determines whether bookings are trustworthy, facilities are not double-booked, equipment inventory remains accurate, and operational decisions can be made based on reliable records.
+Following the requirements in \code{docs/description.md}, this task demonstrates how our database design enforces integrity through three complementary constraint families:
+\textbf{domain integrity}, \textbf{entity integrity}, and \textbf{referential integrity}.
+
+All examples in this section are strictly aligned with the implemented schema exported in \code{sports_arena.sql}.
+We intentionally select representative tables that are central to the business workflow:
+\texttt{equipment}, \texttt{reservation}, \texttt{member}, and \texttt{booking}.
+
+\subsection{Task 1A: Sample \texttt{CREATE TABLE} Statements with Integrity Constraints}
+\subsubsection{Domain Integrity Constraints}
+Domain integrity ensures that each attribute value stays within a valid domain (type, range, format, and business-validity rules). In our schema, domain integrity is enforced through:
+\begin{itemize}
+  \item appropriate data types (e.g., \texttt{DATE}, \texttt{TIME(6)}, \texttt{INT UNSIGNED}),
+  \item \texttt{NOT NULL} to prevent incomplete records, and
+  \item \texttt{CHECK} constraints to express semantic rules at the database level.
+\end{itemize}
+
+The \texttt{equipment} table below demonstrates a numeric domain restriction: \texttt{Total\_Quantity} is defined as \texttt{INT UNSIGNED} and further protected by a \texttt{CHECK} constraint, ensuring inventory quantities are non-negative.
+
+\begin{sql}
+-- Domain integrity example (from sports_arena.sql): non-negative equipment inventory
+CREATE TABLE `equipment`  (
+  `Equipment_ID` int NOT NULL AUTO_INCREMENT,
+  `Equipment_Name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Total_Quantity` int UNSIGNED NOT NULL,
+  PRIMARY KEY (`Equipment_ID`) USING BTREE,
+  CONSTRAINT `equipment_chk_1` CHECK (`Total_Quantity` >= 0)
+) ENGINE = InnoDB AUTO_INCREMENT = 16 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+\end{sql}
+
+The \texttt{reservation} table demonstrates temporal domain rules: (i) a reservation must have a valid time interval, and (ii) each facility cannot have duplicated reservation start times on the same date. These are captured with \texttt{CHECK} and a composite \texttt{UNIQUE} index respectively.
+
+\begin{sql}
+-- Domain integrity example (from sports_arena.sql): valid time interval and slot uniqueness
+CREATE TABLE `reservation`  (
+  `Reservation_ID` int NOT NULL AUTO_INCREMENT,
+  `Reservation_Date` date NOT NULL,
+  `Start_Time` time(6) NOT NULL,
+  `End_Time` time(6) NOT NULL,
+  `Facility_ID` int NOT NULL,
+  PRIMARY KEY (`Reservation_ID`) USING BTREE,
+  UNIQUE INDEX `Reservation_Facility_ID_Reservation__55861018_uniq`(`Facility_ID` ASC, `Reservation_Date` ASC, `Start_Time` ASC) USING BTREE,
+  INDEX `Reservation_Facilit_e090a5_idx`(`Facility_ID` ASC, `Reservation_Date` ASC) USING BTREE,
+  CONSTRAINT `Reservation_Facility_ID_3e1ddf39_fk_Facility_Facility_ID` FOREIGN KEY (`Facility_ID`) REFERENCES `facility` (`Facility_ID`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `chk_reservation_time` CHECK (`Start_Time` < `End_Time`)
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+\end{sql}
+
+\subsubsection{Entity Integrity Constraints}
+Entity integrity guarantees that each row is uniquely identifiable and non-ambiguous. In practice, this is achieved through:
+\begin{itemize}
+  \item primary keys (\texttt{PRIMARY KEY}) that are unique and non-null,
+  \item additional \texttt{UNIQUE} constraints for real-world uniqueness rules, and
+  \item careful key design for specialization tables (where a child table key is also a foreign key).
+\end{itemize}
+
+The \texttt{member} table below illustrates entity integrity: \texttt{Member\_ID} is an auto-increment primary key, and \texttt{user\_id} is uniquely constrained to preserve the one-to-one relationship between a Django account (\texttt{auth\_user}) and the corresponding member profile.
+
+\begin{sql}
+-- Entity integrity example (from sports_arena.sql): primary key + unique user mapping
+CREATE TABLE `member`  (
+  `Member_ID` int NOT NULL AUTO_INCREMENT,
+  `First_Name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Last_Name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Registration_Date` date NOT NULL,
+  `Membership_Status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` int NULL DEFAULT NULL,
+  PRIMARY KEY (`Member_ID`) USING BTREE,
+  UNIQUE INDEX `user_id`(`user_id` ASC) USING BTREE,
+  CONSTRAINT `Member_user_id_2cb16a29_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+\end{sql}
+
+\subsubsection{Referential Integrity Constraints}
+Referential integrity ensures that relationships between tables remain valid. In other words, a foreign key must reference an existing primary key, preventing orphan records and broken associations.
+
+The \texttt{booking} table implements a specialization of \texttt{reservation}: \texttt{Reservation\_ID} acts as the primary key of \texttt{booking} and simultaneously references \texttt{reservation(Reservation\_ID)}. Additionally, each booking must reference a valid member via \texttt{Member\_ID}.
+
+\begin{sql}
+-- Referential integrity example (from sports_arena.sql): booking must link to existing reservation and member
+CREATE TABLE `booking`  (
+  `Reservation_ID` int NOT NULL,
+  `Booking_Status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Member_ID` int NOT NULL,
+  PRIMARY KEY (`Reservation_ID`) USING BTREE,
+  INDEX `Booking_Member__138c47_idx`(`Member_ID` ASC) USING BTREE,
+  CONSTRAINT `Booking_Member_ID_311d123e_fk_Member_Member_ID`
+    FOREIGN KEY (`Member_ID`) REFERENCES `member` (`Member_ID`)
+    ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `Booking_Reservation_ID_2e41085d_fk_Reservation_Reservation_ID`
+    FOREIGN KEY (`Reservation_ID`) REFERENCES `reservation` (`Reservation_ID`)
+    ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+\end{sql}
+
+\subsection{SQL Evidence: Table Creation Verification}
+After deploying the schema, we verified the actual DDL stored in MySQL using \texttt{SHOW CREATE TABLE}. Figure~\ref{fig:task1:sql-show-create} shows successful execution for \texttt{equipment} and \texttt{reservation}, confirming that the domain constraints (data types and \texttt{CHECK}), entity constraints (primary keys and \texttt{UNIQUE} indices), and referential constraints (foreign keys such as \texttt{reservation.Facility\_ID}) are present as designed in \code{sports_arena.sql}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{figure/task1/sql_create_table.png}
+  \caption{SQL verification: successful \texttt{SHOW CREATE TABLE} execution for \texttt{equipment} and \texttt{reservation}, confirming that integrity constraints are deployed in the DBMS.}
+  \label{fig:task1:sql-show-create}
+\end{figure}
+
+\subsection{Task 1B: How Integrity Constraints Are Applied and Maintained}
+\subsubsection{Maintaining Domain Integrity (DB + Django)}
+\textbf{Database enforcement.} Domain rules are enforced at the DBMS boundary as the final, non-bypassable safeguard. For example, inserting a negative value into \texttt{equipment.Total\_Quantity} violates the attribute domain (\texttt{INT UNSIGNED}) and is rejected by MySQL. Figure~\ref{fig:task1:sql-invalid-insert} shows \texttt{Error Code: 1264 (Out of range)}, which provides direct evidence that invalid domain values cannot be persisted.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.98\textwidth]{figure/task1/sql_invalid_insert.png}
+  \caption{Domain integrity enforcement (SQL): inserting a negative \texttt{Total\_Quantity} is rejected as an out-of-range value (\texttt{INT UNSIGNED}).}
+  \label{fig:task1:sql-invalid-insert}
+\end{figure}
+
+\textbf{Application enforcement.} While DB constraints guarantee correctness, the application layer should prevent invalid inputs early and provide user-friendly feedback. In our Django implementation, reservation-related domain rules are validated before database submission:
+\begin{itemize}
+  \item \textbf{Time-slot conflict prevention:} the system checks whether the selected facility and time range overlaps with an existing reservation. If a conflict is detected, the request is blocked with a clear validation message (Figure~\ref{fig:task1:django-conflict}).
+  \item \textbf{Advance booking limit:} bookings can only be made up to 1 week in advance. Inputs beyond the allowed range are rejected with an explanatory error message (Figure~\ref{fig:task1:django-advance-limit}).
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{figure/task1/ValidationError_1.png}
+  \caption{Domain integrity enforcement (Django): reservation conflict detection prevents overlapping time slots at the application layer.}
+  \label{fig:task1:django-conflict}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{figure/task1/ValidationError_2.png}
+  \caption{Domain integrity enforcement (Django): the system enforces a 1-week advance booking policy and reports the latest allowed date.}
+  \label{fig:task1:django-advance-limit}
+\end{figure}
+
+Together, these validations demonstrate a robust strategy: Django provides early prevention and usability, while MySQL constraints remain the ultimate guardrail against invalid domain values.
+
+\subsubsection{Maintaining Entity Integrity}
+Entity integrity in our database is maintained primarily through \texttt{PRIMARY KEY} and \texttt{UNIQUE} constraints:
+\begin{itemize}
+  \item \textbf{Stable identifiers:} auto-increment primary keys such as \texttt{Member\_ID} and \texttt{Reservation\_ID} ensure that each entity instance can be referenced unambiguously across the system.
+  \item \textbf{Real-world uniqueness rules:} unique indices (e.g., the unique \texttt{user\_id} mapping in \texttt{member}) prevent duplicate profiles for the same login account, preserving a consistent identity model.
+  \item \textbf{Slot-level uniqueness:} the composite unique index on \texttt{reservation(Facility\_ID, Reservation\_Date, Start\_Time)} prevents duplicated reservation slots and reduces the risk of double booking.
+\end{itemize}
+
+In Django, entity integrity is naturally reinforced by the ORM: each model instance is identified by its primary key, and unique constraints raise immediate errors if violated. This dual-layer alignment keeps identity and uniqueness consistent across the database and application.
+
+\subsubsection{Maintaining Referential Integrity}
+Referential integrity is maintained through foreign key constraints with restrictive actions:
+\begin{itemize}
+  \item \textbf{No orphan bookings:} the \texttt{Reservation\_ID} and \texttt{Member\_ID} columns in \texttt{booking} must reference existing rows in \texttt{reservation} and \texttt{member} respectively.
+  \item \textbf{Controlled deletes/updates:} the use of \texttt{ON DELETE RESTRICT} and \texttt{ON UPDATE RESTRICT} prevents accidental cascades that could silently destroy dependent records or break relationships.
+\end{itemize}
+
+On the Django side, referential integrity is supported by model relationships and form design: users select foreign-key objects from validated querysets, which ensures that referenced entities exist at the time of submission. As a result, relationships remain consistent even under concurrent usage.
+
+\subsection{Summary}
+This task demonstrates that our database integrity strategy is both \textbf{correct by design} and \textbf{verifiable in practice}. Domain constraints prevent invalid values (e.g., negative quantities and invalid booking dates), entity constraints guarantee unique and stable identities, and referential constraints preserve valid relationships between members, reservations, and bookings. By combining MySQL constraints with Django validation, the system achieves integrity that is rigorous, user-friendly, and aligned with the implemented schema in \code{sports_arena.sql}.

@@ -1,1 +1,386 @@
 \section{SQL}
+
+This section demonstrates the practical implementation of the University Sports
+Complex Management System database. It covers the creation of the remaining
+tables, data population, and various data retrieval operations using SQL.
+
+\subsection{Table Creation}
+
+Following the initial examples in Task 1, we proceeded to create the remaining
+tables to complete the database schema. These tables include entities for
+different member types (Student, Staff, External Visitor), contact information,
+coaching staff, facility details, and various transaction tables like
+maintenance records and session enrollments.
+
+The following screenshots demonstrate the successful execution of the
+\texttt{CREATE TABLE} commands for these entities.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figure/task2_sc/screenshot_create_tables_part1.png}
+    \caption{CREATE TABLE execution (Student, Staff, External\_Visitor)}
+    \label{fig:create_tables_1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figure/task2_sc/screenshot_create_tables_part2.png}
+    \caption{CREATE TABLE execution (Member\_Email, Member\_Phone, Coach\_Email, Coach\_Phone)}
+    \label{fig:create_tables_2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figure/task2_sc/screenshot_create_tables_part3.png}
+    \caption{CREATE TABLE execution (Facility, Coach, Maintenance)}
+    \label{fig:create_tables_3}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figure/task2_sc/screenshot_create_tables_part4.png}
+    \caption{CREATE TABLE execution (Visitor\_Application, Training\_Session, Session\_Enrollment, Reservation\_Equipments)}
+    \label{fig:create_tables_4}
+\end{figure}
+
+\subsection{Data Population}
+
+To ensure the database is functional for testing and queries, we populated each
+table with a minimum of 6–10 rows of data. The following screenshot verifies the
+data population by showing the row counts for the key tables in the database.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figure/task2_sc/screenshot_data_population_count.png}
+    \caption{Verification of Data Population (Row Counts)}
+    \label{fig:data_count}
+\end{figure}
+
+\subsection{Data Retrieval and Manipulation}
+
+We executed various SQL commands across six categories to demonstrate data
+retrieval and manipulation capabilities.
+
+\subsubsection{Filtering}
+
+This category demonstrates the use of \texttt{LIKE}, \texttt{BETWEEN}, and
+\texttt{IN} clauses to filter results.
+
+\textbf{Query 1: Filtering by Pattern (LIKE)} \\
+Find all facilities related to 'Tennis' that are currently available.
+\begin{sql}[caption={Filtering with LIKE}]
+SELECT Facility_Name, Type, Status 
+FROM Facility 
+WHERE Type LIKE '%Tennis%' AND Status='Available';
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query1.png}
+    \caption{Output of Query 1}
+    \label{fig:query1}
+\end{figure}
+
+\textbf{Query 2: Filtering by Range (BETWEEN)} \\
+Retrieve reservations made for the month of December 2025.
+\begin{sql}[caption={Filtering with BETWEEN}]
+SELECT Reservation_ID, Reservation_Date 
+FROM Reservation 
+WHERE Reservation_Date BETWEEN '2025-12-01' AND '2025-12-31';
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query2.png}
+    \caption{Output of Query 2}
+    \label{fig:query2}
+\end{figure}
+
+\textbf{Query 3: Filtering by Set (IN)} \\
+List bookings that are either 'Pending' or 'Confirmed'.
+\begin{sql}[caption={Filtering with IN}]
+SELECT Reservation_ID, Booking_Status 
+FROM Booking 
+WHERE Booking_Status IN ('Pending','Confirmed');
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query3.png}
+    \caption{Output of Query 3}
+    \label{fig:query3}
+\end{figure}
+
+
+
+\subsubsection{Aggregate Functions}
+
+This category uses functions like \texttt{COUNT}, \texttt{SUM}, and \texttt{AVG} to summarize data.
+
+\textbf{Query 4: Counting Records (COUNT)} \\
+Count the number of facilities for each type.
+\begin{sql}[caption={Aggregation with COUNT}]
+SELECT Type, COUNT(*) AS facility_count 
+FROM Facility 
+GROUP BY Type;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query4.png}
+    \caption{Output of Query 4}
+    \label{fig:query4}
+\end{figure}
+
+\textbf{Query 5: Summing Values (SUM)} \\
+Calculate the total quantity of equipment reserved for each reservation ID.
+\begin{sql}[caption={Aggregation with SUM}]
+SELECT Reservation_ID, SUM(Quantity) AS total_equipment 
+FROM Reservation_Equipments 
+GROUP BY Reservation_ID;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query5.png}
+    \caption{Output of Query 5}
+    \label{fig:query5}
+\end{figure}
+
+\textbf{Query 6: Averaging Values (AVG)} \\
+Calculate the average maximum capacity of training sessions for each coach.
+\begin{sql}[caption={Aggregation with AVG}]
+SELECT Coach_ID, AVG(Max_Capacity) AS avg_capacity 
+FROM Training_Session 
+GROUP BY Coach_ID;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query6.png}
+    \caption{Output of Query 6}
+    \label{fig:query6}
+\end{figure}
+
+
+
+\subsubsection{Limit / Sorting}
+
+This category demonstrates sorting results with \texttt{ORDER BY} and restricting output with \texttt{LIMIT}.
+
+\textbf{Query 7: Ordering and Limiting} \\
+List the top 3 available facilities with the highest capacity.
+\begin{sql}[caption={Sorting and Limiting results}]
+SELECT Facility_Name, Capacity 
+FROM Facility 
+WHERE Status='Available' 
+ORDER BY Capacity DESC 
+LIMIT 3;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query7.png}
+    \caption{Output of Query 7}
+    \label{fig:query7}
+\end{figure}
+
+\textbf{Query 8: Multi-level Sorting} \\
+Show recent reservations ordered by date and time in descending order.
+\begin{sql}[caption={Multi-column Sorting}]
+SELECT Reservation_ID, Reservation_Date, Start_Time 
+FROM Reservation 
+ORDER BY Reservation_Date DESC, Start_Time DESC 
+LIMIT 5;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query8.png}
+    \caption{Output of Query 8}
+    \label{fig:query8}
+\end{figure}
+
+\textbf{Query 9: Sorting Applications} \\
+List the 5 most recent visitor applications.
+\begin{sql}[caption={Sorting Visitor Applications}]
+SELECT Application_ID, First_Name, Status 
+FROM Visitor_Application 
+ORDER BY Application_Date DESC 
+LIMIT 5;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query9.png}
+    \caption{Output of Query 9}
+    \label{fig:query9}
+\end{figure}
+
+
+
+\clearpage
+
+\subsubsection{Join Operators}
+
+This category demonstrates \texttt{INNER JOIN}, \texttt{LEFT JOIN}, and \texttt{RIGHT JOIN} to combine data from multiple tables.
+
+\textbf{Query 10: Inner Join} \\
+Retrieve booking details including member name, facility name, and booking status.
+\begin{sql}[caption={Inner Join Example}]
+SELECT b.Reservation_ID, m.First_Name, f.Facility_Name, b.Booking_Status 
+FROM Booking b 
+JOIN Member m ON b.Member_ID=m.Member_ID 
+JOIN Reservation r ON b.Reservation_ID=r.Reservation_ID 
+JOIN Facility f ON r.Facility_ID=f.Facility_ID;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query10.png}
+    \caption{Output of Query 10}
+    \label{fig:query10}
+\end{figure}
+
+\textbf{Query 11: Left Join} \\
+List all training sessions and their coaches (if assigned), facilities, and capacity.
+\begin{sql}[caption={Left Join Example}]
+SELECT ts.Reservation_ID, c.First_Name, f.Facility_Name, 
+       ts.Max_Capacity 
+FROM Training_Session ts 
+LEFT JOIN Coach c ON ts.Coach_ID=c.Coach_ID 
+LEFT JOIN Reservation r ON ts.Reservation_ID=r.Reservation_ID 
+LEFT JOIN Facility f ON r.Facility_ID=f.Facility_ID;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query11.png}
+    \caption{Output of Query 11}
+    \label{fig:query11}
+\end{figure}
+
+\textbf{Query 12: Right Join} \\
+Show all equipment and any reservations associated with them (ensuring all equipment types are listed).
+\begin{sql}[caption={Right Join Example}]
+SELECT e.Equipment_Name, re.Reservation_ID, re.Quantity 
+FROM Equipment e 
+RIGHT JOIN Reservation_Equipments re ON e.Equipment_ID=re.Equipment_ID;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query12.png}
+    \caption{Output of Query 12}
+    \label{fig:query12}
+\end{figure}
+
+
+
+\subsubsection{String / Arithmetic Operations}
+
+This category performs calculations and string manipulations on retrieved data.
+
+\textbf{Query 13: Arithmetic Expression} \\
+Calculate the duration of reservations in hours.
+\begin{sql}[caption={Arithmetic Operation}]
+SELECT Reservation_ID, 
+       TIMESTAMPDIFF(MINUTE, Start_Time, End_Time)/60 AS duration_hours 
+FROM Reservation;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query13.png}
+    \caption{Output of Query 13}
+    \label{fig:query13}
+\end{figure}
+
+\textbf{Query 14: String Concatenation} \\
+Combine first and last names into a single full name column for members.
+\begin{sql}[caption={String Concatenation}]
+SELECT CONCAT(First_Name, ' ', Last_Name) AS member_name, 
+       Membership_Status 
+FROM Member;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query14.png}
+    \caption{Output of Query 14}
+    \label{fig:query14}
+\end{figure}
+
+\textbf{Query 15: Complex Calculation} \\
+Calculate the theoretical remaining quantity of equipment after reservations.
+\begin{sql}[caption={Complex Arithmetic}]
+SELECT re.Reservation_ID, re.Quantity, e.Total_Quantity, 
+       (e.Total_Quantity - re.Quantity) AS remaining_theoretical 
+FROM Reservation_Equipments re 
+JOIN Equipment e ON re.Equipment_ID=e.Equipment_ID;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query15.png}
+    \caption{Output of Query 15}
+    \label{fig:query15}
+\end{figure}
+
+
+
+\subsubsection{Formatting}
+
+This category focuses on formatting query output using aliases and concatenation for better readability.
+
+\textbf{Query 16: Column Aliasing} \\
+Rename columns for a clear Facility location report.
+\begin{sql}[caption={Column Aliasing}]
+SELECT Facility_ID AS ID, Facility_Name AS Name, 
+       CONCAT(Building,'-',Floor,'-',Room_Number) AS Location 
+FROM Facility;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query16.png}
+    \caption{Output of Query 16}
+    \label{fig:query16}
+\end{figure}
+
+\textbf{Query 17: Date Formatting} \\
+Format reservation dates and create user-friendly Booking summaries.
+\begin{sql}[caption={Date Formatting and Concatenation}]
+SELECT b.Reservation_ID AS BookingID, 
+       CONCAT(m.First_Name,' ',m.Last_Name) AS Member, 
+       DATE_FORMAT(r.Reservation_Date,'%Y-%m-%d') AS Date 
+FROM Booking b 
+JOIN Member m ON b.Member_ID=m.Member_ID 
+JOIN Reservation r ON b.Reservation_ID=r.Reservation_ID;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query17.png}
+    \caption{Output of Query 17}
+    \label{fig:query17}
+\end{figure}
+
+\textbf{Query 18: Session Formatting} \\
+Create a formatted schedule for training sessions.
+\begin{sql}[caption={Result Set Formatting}]
+SELECT ts.Reservation_ID AS SessionID, 
+       CONCAT(c.First_Name,' ',c.Last_Name) AS CoachName, 
+       CONCAT(r.Start_Time,'-',r.End_Time) AS TimeSlot 
+FROM Training_Session ts 
+JOIN Coach c ON ts.Coach_ID=c.Coach_ID 
+JOIN Reservation r ON ts.Reservation_ID=r.Reservation_ID;
+\end{sql}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figure/task2_sc/query18.png}
+    \caption{Output of Query 18}
+    \label{fig:query18}
+\end{figure}
+

@@ -15,8 +15,11 @@
 \fancyfoot[C]{Page \thepage\ of \pageref{LastMainPage}} % 使用自定义的最后一页标签
 \setcounter{page}{1}
 
-\includepdf[page=-, fitpaper=true]{figure/gantt.pdf}
+\clearpage
+\phantomsection
 \addcontentsline{toc}{section}{Project Gantt Chart and Milestones}
+\includepdf[pages=-, fitpaper=true]{figure/gantt.pdf}
+
 
 \input{task1.tex}
 \input{task2.tex}
@@ -24,8 +27,8 @@
 \input{task4.tex}
 
 
-\newpage
-\bibliography{ref}
+% \newpage
+% \bibliography{ref}
 
 
 

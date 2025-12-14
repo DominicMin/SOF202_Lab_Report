@@ -1,1 +1,212 @@
 \section{Access Control}
+
+\subsection{Objective and Alignment with the Implemented Schema}
+This task requires the implementation and verification of \textbf{two (2)}
+access control mechanisms, supported by clear evidence (screenshots)
+demonstrating users' ability (or inability) to \textit{view, update, and delete}
+data. Our implementation is strictly aligned with the exported database schema
+in \code{sports\_arena.sql} and the role design previously proposed in the
+assignment.
+
+In this system, booking-related data is modeled around the following tables (all
+names and attributes follow \code{sports\_arena.sql}):
+\begin{itemize}
+  \item \texttt{reservation} stores the reservable time slot
+  (\texttt{Reservation\_Date}, \texttt{Start\_Time}, \texttt{End\_Time}) and the
+  target facility (\texttt{Facility\_ID}).
+  \item \texttt{booking} is a specialization of \texttt{reservation} for
+  members, where \texttt{Reservation\_ID} is both the primary key and a foreign
+  key to \texttt{reservation}, and \texttt{Booking\_Status} captures lifecycle
+  states (e.g., \textit{Pending}, \textit{Confirmed}, \textit{Cancelled}).
+  \item \texttt{training\_session} is another specialization of
+  \texttt{reservation}, linked to \texttt{coach} by \texttt{Coach\_ID} and
+  constrained by \texttt{Max\_Capacity}.
+  \item \texttt{session\_enrollment} records member enrollments in training
+  sessions (\texttt{Member\_ID} + \texttt{Reservation\_ID}).
+\end{itemize}
+
+Given the multi-role nature of the sports arena, access control must ensure:
+\textbf{(i)} confidentiality of member-related data,
+\textbf{(ii)} integrity of bookings and schedules,
+and \textbf{(iii)} least-privilege operations for each role.
+To achieve this, we implement \textbf{RBAC (Role-Based Access Control)} and \textbf{row-level access control (own-row/own-session)} in a defense-in-depth manner (database + Django application layer).
+
+\subsection{Mechanism 1: Role-Based Access Control (RBAC)}
+\subsubsection{Role Model and Privilege Boundary}
+RBAC assigns permissions based on business responsibilities instead of
+individual identities. The system defines five operational roles consistent with
+the project implementation (Django \texttt{Group}) and the database security
+model: \texttt{dba\_role}, \texttt{manager\_role},
+\texttt{booking\_officer\_role}, \texttt{coach\_role}, and\textbf{}
+\texttt{member\_role}.
+
+Table~\ref{tab:task4:rbac-matrix} summarizes the key \textbf{DML} boundaries on the booking-related tables. The principle of \textit{least privilege} is enforced by granting only the minimal operations required to complete legitimate tasks, while explicitly preventing destructive or cross-domain actions (e.g., coaches deleting members).
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Role} & \textbf{\texttt{booking}} & \textbf{\texttt{reservation}} & \textbf{\texttt{training\_session}} & \textbf{\texttt{member}} \\
+\hline
+\texttt{dba\_role} & S/I/U/D & S/I/U/D & S/I/U/D & S/I/U/D \\
+\hline
+\texttt{manager\_role} & S/U & S/U & S & S \\
+\hline
+\texttt{booking\_officer\_role} & S/I/U & S/I/U & S & S \\
+\hline
+\texttt{coach\_role} & --- & --- & S & --- \\
+\hline
+\texttt{member\_role} & --- (via view) & --- (via view) & --- & --- \\
+\hline
+\end{tabular}
+\caption{RBAC privilege boundary (S=SELECT, I=INSERT, U=UPDATE, D=DELETE). Members are forced to access booking data through restricted views (Mechanism 2), rather than the base tables.}
+\label{tab:task4:rbac-matrix}
+\end{table}
+
+\subsubsection{SQL Enforcement via \texttt{GRANT} / \texttt{REVOKE}}
+At the DBMS layer, we enforce RBAC using MySQL authorization. The following snippet illustrates the core idea: coaches are permitted to read training sessions, while members are denied direct access to sensitive base tables such as \texttt{booking}. In our testing, we used dedicated database accounts to represent the \texttt{coach\_role} and \texttt{member\_role} sessions.
+
+\begin{sql}
+-- Example RBAC (simplified for demonstration; aligned to sports_arena.sql table names)
+CREATE ROLE coach_role;
+CREATE ROLE member_role;
+
+-- Coach: can read training session information (e.g., capacity and schedule)
+GRANT SELECT ON sports_arena.training_session TO coach_role;
+
+-- Coach: must not manipulate core identity data (member table)
+REVOKE DELETE ON sports_arena.member FROM coach_role;
+
+-- Member: cannot directly access the base booking table
+REVOKE SELECT ON sports_arena.booking FROM member_role;
+\end{sql}
+
+\subsubsection{Verification Evidence (SQL)}
+Figure~\ref{fig:task4:sql-coach-select} demonstrates an allowed operation: a coach account can successfully read rows from \texttt{training\_session} (showing \texttt{Reservation\_ID}, \texttt{Max\_Capacity}, and \texttt{Coach\_ID}). This supports day-to-day coaching tasks such as checking the sessions they are responsible for.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{figure/task4/sql_coach_select.png}
+  \caption{RBAC verification (allowed): coach can \texttt{SELECT} from \texttt{training\_session}.}
+  \label{fig:task4:sql-coach-select}
+\end{figure}
+
+Figure~\ref{fig:task4:sql-coach-delete-denied} demonstrates a blocked operation: the same coach account is explicitly denied from deleting member records. MySQL returns \texttt{Error Code: 1142}, which confirms that high-risk actions on identity tables are not available to coaches.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{figure/task4/sql_coach_delete_member.png}
+  \caption{RBAC verification (denied): coach cannot \texttt{DELETE} from \texttt{member} (\texttt{Error Code: 1142}).}
+  \label{fig:task4:sql-coach-delete-denied}
+\end{figure}
+
+Similarly, Figure~\ref{fig:task4:sql-member-select-booking-denied} shows that a member account is denied direct access to the \texttt{booking} base table. This is a critical control, because unrestricted reads on \texttt{booking} would expose other members' reservation activities.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{figure/task4/sql_member_select_booking.png}
+  \caption{RBAC verification (denied): member cannot \texttt{SELECT} from the \texttt{booking} base table (\texttt{Error Code: 1142}).}
+  \label{fig:task4:sql-member-select-booking-denied}
+\end{figure}
+
+\subsubsection{Django Mapping and User Experience}
+At the application layer, the same RBAC model is mapped to Django \texttt{Group} memberships. Views are protected by role checks (e.g., only booking officers/managers can manage all bookings; members can only access member-facing booking pages). This avoids the common pitfall of ``front-end hiding only'' by ensuring authorization is enforced server-side.
+
+Figure~\ref{fig:task4:ui-admin-bookings} shows a privileged operational view where an administrative role can list and manage bookings across multiple members (the \textit{Member} column is visible and the \textit{Manage} action is available). In contrast, members do not receive this interface and cannot access it directly (see the 403 evidence in Mechanism 2).
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{figure/task4/booking_records_admin.png}
+  \caption{Django RBAC evidence: an administrative role can view bookings across members and access management actions.}
+  \label{fig:task4:ui-admin-bookings}
+\end{figure}
+
+\subsection{Mechanism 2: Row-Level Access Control (Own-Row / Own-Session)}
+\subsubsection{Rationale}
+RBAC alone is not sufficient when users with the same role should not access each other's records. For example, all members share the \texttt{member\_role}, yet each member must be restricted to \textit{their own} bookings. Therefore, we implement row-level access control to enforce \textbf{data ownership} and \textbf{minimal exposure} within the same role.
+
+We enforce row-level control through two complementary techniques:
+\begin{itemize}
+  \item \textbf{Database layer (view-based filtering):} revoke access to sensitive base tables and grant access only through a restricted view.
+  \item \textbf{Application layer (queryset filtering + 403 blocking):} Django filters records by the authenticated user, and blocks any unauthorized access attempts with a 403 response.
+\end{itemize}
+
+\subsubsection{SQL View for Member Booking Data}
+To ensure members cannot bypass row-level filtering, we expose a restricted view that returns only the booking information the member is allowed to see. The view joins \texttt{booking}, \texttt{reservation}, and \texttt{facility} to provide a user-friendly result consistent with the system UI (date and facility name are not stored in \texttt{booking} directly).
+
+\begin{sql}
+-- View-based row-level access control (aligned to sports_arena.sql)
+-- The WHERE clause represents "current member only" logic.
+CREATE OR REPLACE VIEW v_member_booking_detail AS
+SELECT
+  b.Reservation_ID,
+  b.Booking_Status,
+  b.Member_ID,
+  r.Reservation_Date,
+  f.Facility_Name
+FROM booking b
+JOIN reservation r ON r.Reservation_ID = b.Reservation_ID
+JOIN facility f ON f.Facility_ID = r.Facility_ID
+WHERE b.Member_ID = 1;  -- demo: current member (e.g., Member_ID=1)
+
+GRANT SELECT ON v_member_booking_detail TO member_role;
+\end{sql}
+
+Figure~\ref{fig:task4:sql-member-select-view} confirms that, after revoking base-table access (Figure~\ref{fig:task4:sql-member-select-booking-denied}), the member can still retrieve necessary booking details through the view, without exposing other members' data.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{figure/task4/sql_member_select_view.png}
+  \caption{Row-level control (allowed via view): member queries the restricted booking view and receives only permitted rows.}
+  \label{fig:task4:sql-member-select-view}
+\end{figure}
+
+\subsubsection{Django Row-Level Filtering and Update Boundaries}
+In the Django application, row-level access control is enforced by filtering the booking list by the logged-in member. Practically, this means:
+\begin{itemize}
+  \item A member sees only bookings where \texttt{booking.Member\_ID} matches the member profile linked to \texttt{request.user} (via \texttt{member.user\_id} in the schema).
+  \item Members are allowed to perform \textbf{safe updates} on their own records, such as cancelling their own bookings (implemented as updating \texttt{Booking\_Status} to \textit{Cancelled} rather than issuing destructive deletes).
+  \item Any attempt to access another role’s page or another member’s record is blocked server-side and returns HTTP 403.
+\end{itemize}
+
+Figure~\ref{fig:task4:ui-member1-bookings} shows that \textbf{Member 1} can view their own bookings and is provided with the \textit{Cancel} action for eligible items, which demonstrates controlled \textbf{UPDATE} capability within an ownership boundary.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{figure/task4/booking_records_member1.png}
+  \caption{Row-level control (member view): Member 1 can see only their own booking records and perform a bounded update (\textit{Cancel}).}
+  \label{fig:task4:ui-member1-bookings}
+\end{figure}
+
+Figure~\ref{fig:task4:ui-member2-bookings} demonstrates the isolation effect: \textbf{Member 2} does not see Member 1's bookings; the page correctly returns ``No bookings found.'' This is direct evidence that record visibility is constrained by user identity rather than by UI convention.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{figure/task4/booking_records_member2.png}
+  \caption{Row-level control (member isolation): Member 2 cannot see Member 1's booking records; the list is empty for unrelated data.}
+  \label{fig:task4:ui-member2-bookings}
+\end{figure}
+
+Finally, Figure~\ref{fig:task4:ui-403} shows the system behavior when a user attempts to access a resource outside their authorized role boundary: the request is rejected with a clear 403 page. This verifies that authorization is enforced by the server (not merely by hiding buttons), and that the system provides a secure and user-friendly failure mode.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.4\textwidth]{figure/task4/403.png}
+  \caption{Authorization enforcement: unauthorized access is blocked with HTTP 403 and a dedicated error page.}
+  \label{fig:task4:ui-403}
+\end{figure}
+
+\subsection{Summary}
+This task implements and validates two complementary access control mechanisms:
+\begin{itemize}
+  \item \textbf{RBAC:} separates privileges across operational roles and
+  prevents unauthorized DML actions (e.g., coach cannot delete members; member
+  cannot directly read the booking base table).
+  \item \textbf{Row-level access control:} restricts users to ``own data'' via
+  view-based filtering (DB) and queryset constraints (Django), and blocks
+  unauthorized access with HTTP 403.
+\end{itemize}
+Together, these controls enforce least privilege, prevent data leakage, and
+protect the integrity of bookings and schedules in a practical, verifiable
+manner.
