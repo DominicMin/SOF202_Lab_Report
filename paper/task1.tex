@@ -49,7 +49,7 @@ CREATE TABLE `reservation`  (
   INDEX `Reservation_Facilit_e090a5_idx`(`Facility_ID` ASC, `Reservation_Date` ASC) USING BTREE,
   CONSTRAINT `Reservation_Facility_ID_3e1ddf39_fk_Facility_Facility_ID` FOREIGN KEY (`Facility_ID`) REFERENCES `facility` (`Facility_ID`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `chk_reservation_time` CHECK (`Start_Time` < `End_Time`)
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 \end{sql}
 
 \subsubsection{Entity Integrity Constraints}
@@ -163,3 +163,13 @@ On the Django side, referential integrity is supported by model relationships an
 
 \subsection{Summary}
 This task demonstrates that our database integrity strategy is both \textbf{correct by design} and \textbf{verifiable in practice}. Domain constraints prevent invalid values (e.g., negative quantities and invalid booking dates), entity constraints guarantee unique and stable identities, and referential constraints preserve valid relationships between members, reservations, and bookings. By combining MySQL constraints with Django validation, the system achieves integrity that is rigorous, user-friendly, and aligned with the implemented schema in \code{sports_arena.sql}.
+
+\subsection{Schema Diagram (Supplementary)}
+Figure~\ref{fig:task1:schema-overview} provides a compact overview of the core relational schema used in this report. It clarifies the supertype--subtype design (\texttt{reservation} $\rightarrow$ \texttt{booking}/\texttt{training\_session}) and the associative entities (\texttt{session\_enrollment}, \texttt{reservation\_equipments}), which supports the integrity discussion above.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{figure/diagram/schema_core_overview.png}
+  \caption{Core relational schema overview aligned with \texttt{sports\_arena.sql}.}
+  \label{fig:task1:schema-overview}
+\end{figure}

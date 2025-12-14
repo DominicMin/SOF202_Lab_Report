@@ -37,8 +37,10 @@ RBAC assigns permissions based on business responsibilities instead of
 individual identities. The system defines five operational roles consistent with
 the project implementation (Django \texttt{Group}) and the database security
 model: \texttt{dba\_role}, \texttt{manager\_role},
-\texttt{booking\_officer\_role}, \texttt{coach\_role}, and\textbf{}
+\texttt{booking\_officer\_role}, \texttt{coach\_role}, and
 \texttt{member\_role}.
+
+To keep the evidence concise, the SQL verification screenshots in this task focus on two representative roles (\texttt{coach\_role} and \texttt{member\_role}). The remaining roles are included in the privilege boundary matrix to document the full intended least-privilege model.
 
 Table~\ref{tab:task4:rbac-matrix} summarizes the key \textbf{DML} boundaries on the booking-related tables. The principle of \textit{least privilege} is enforced by granting only the minimal operations required to complete legitimate tasks, while explicitly preventing destructive or cross-domain actions (e.g., coaches deleting members).
 

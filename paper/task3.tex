@@ -1,6 +1,6 @@
 \section{Triggering}
 
-To ensure data integrity and enforce business rules at the database level, we verified several triggers covering different event types (INSERT and UPDATE). The following sections detail the implementation and verification of these triggers.
+To ensure data integrity and enforce business rules at the database level, we selected two trigger event types---\textbf{INSERT} and \textbf{UPDATE}---and implemented \textbf{BEFORE} triggers so invalid operations are rejected before any row is committed. All trigger definitions shown in this section are aligned with the deployed schema in \code{sports\_arena.sql}. The evidence scenarios below explicitly show the database state \textit{before} and \textit{after} each attempted operation (success or rejection).
 
 \subsection{Implemented Triggers}
 
@@ -433,8 +433,20 @@ END;
 
 \subsection{Evidence Scenarios}
 
+\subsubsection{Trigger Interaction Diagram}
+Figure~\ref{fig:task3:trigger-overview} summarizes how the implemented triggers collaborate to enforce business rules in the reservation workflow. It also highlights the shared dependency on base constraints (e.g., foreign keys, checks) and the common rejection behavior (\texttt{SIGNAL SQLSTATE '45000'}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figure/diagram/trigger_enforcement_overview.png}
+    \caption{Trigger enforcement overview: major trigger points and the resulting accept/reject outcomes during \texttt{INSERT}/\texttt{UPDATE}.}
+    \label{fig:task3:trigger-overview}
+\end{figure}
+
 \subsubsection{Scenario A: Reservation Overlap is Blocked}
-We first create two non-overlapping reservations for facility 4 (tomorrow).
+\textbf{Before:} The target facility has two valid, non-overlapping reservations on the chosen date (Scenario A1).
+\textbf{Action:} Attempt to insert a reservation that overlaps an existing time interval for the same facility.
+\textbf{After:} The trigger blocks the overlapping insert with an error (Scenario A2), and the reservation list remains unchanged (Scenario A3).
 \begin{sql}[caption={Scenario A1 SQL: Create two non-overlapping reservations}]
 SET @res_facility := 4;
 SET @res_date := DATE_ADD(CURDATE(), INTERVAL 1 DAY);
@@ -481,7 +493,10 @@ ORDER BY Reservation_ID;
 \end{figure}
 
 \subsubsection{Scenario B: Booking Pending Limit}
-Limit max 2 pending bookings per member. Prepare three future reservations for member 1:
+\textbf{Rule:} A member may have at most two \texttt{Pending} bookings.
+\textbf{Before:} Member 1 has fewer than two pending bookings.
+\textbf{Action:} Prepare three future reservation slots (Scenario B1), insert two pending bookings (Scenario B2), then attempt a third pending booking (Scenario B3).
+\textbf{After:} The trigger raises \texttt{'Member already has 2 pending bookings'} and the database still contains only two pending bookings for the member (Scenario B4).
 \begin{sql}[caption={Scenario B1 SQL: Prepare three reservations}]
 SET @booking_member := 1;
 SET @booking_date := DATE_ADD(CURDATE(), INTERVAL 2 DAY);
@@ -542,7 +557,10 @@ FROM booking WHERE Member_ID = @booking_member ORDER BY Reservation_ID;
 \end{figure}
 
 \subsubsection{Scenario C: Maintenance XOR Constraint}
-Maintenance must target either a facility or equipment, but not both.
+\textbf{Rule:} Maintenance must target either a facility \textit{or} equipment (exclusive-or), never both and never neither.
+\textbf{Before:} No invalid maintenance row exists for the tested combinations.
+\textbf{Action:} Attempt two invalid inserts (neither target / both targets), then insert one valid maintenance record.
+\textbf{After:} The invalid inserts are rejected with the trigger error (Scenario C1), while the valid insert succeeds and is queryable (Scenario C2).
 \begin{sql}[caption={Scenario C SQL: Maintenance Insert Tests}]
 INSERT INTO maintenance (Scheduled_Date, Completion_Date, Status, Description, Equipment_ID, Facility_ID)
 VALUES (DATE_ADD(CURDATE(), INTERVAL 4 DAY), NULL, 'Scheduled', 'Invalid: none', NULL, NULL); -- expect error
@@ -569,7 +587,10 @@ FROM maintenance ORDER BY Maintenance_ID DESC LIMIT 1;
 \end{figure}
 
 \subsubsection{Scenario D: Equipment Availability}
-Check stock availability during reservation. Setup overlapping reservations for Equipment 2 and check stock:
+\textbf{Rule:} Reserved quantity cannot exceed available equipment stock (total quantity minus overlapping reservations and maintenance).
+\textbf{Before:} Equipment stock is recorded in \texttt{equipment.Total\_Quantity} and is currently available (Scenario D1).
+\textbf{Action:} Assign a valid quantity to the first reservation (Scenario D2), then attempt to over-allocate for an overlapping reservation (Scenario D3).
+\textbf{After:} The over-allocation is rejected with \texttt{'Requested equipment exceeds available quantity'} (Scenario D3), preserving inventory correctness.
 \begin{sql}[caption={Scenario D1 SQL: Setup and Stock Check}]
 SET @equip_date := DATE_ADD(CURDATE(), INTERVAL 2 DAY);
 INSERT INTO reservation (Reservation_Date, Start_Time, End_Time, Facility_ID)
@@ -613,7 +634,10 @@ VALUES (16, 2, @equip_res_2); -- expect error
 \end{figure}
 
 \subsubsection{Scenario E: Session Enrollment Capacity}
-Validate max capacity. Create one-seat session, first enrollment succeeds, second fails:
+\textbf{Rule:} A training session cannot exceed its \texttt{Max\_Capacity}.
+\textbf{Before:} A training session is created with \texttt{Max\_Capacity = 1} (Scenario E1).
+\textbf{Action:} Insert the first enrollment (Scenario E2), then attempt a second enrollment.
+\textbf{After:} The second enrollment is rejected with \texttt{'Training session is full'} (Scenario E3), and the session enrollment count remains within capacity.
 \begin{sql}[caption={Scenario E SQL: Session Capacity Tests}]
 SET @session_date := DATE_ADD(CURDATE(), INTERVAL 3 DAY);
 INSERT INTO reservation (Reservation_Date, Start_Time, End_Time, Facility_ID)

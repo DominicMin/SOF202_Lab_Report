@@ -18,36 +18,45 @@ The following screenshots demonstrate the successful execution of the
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{figure/task2_sc/screenshot_create_tables_part1.png}
-    \caption{CREATE TABLE execution (Student, Staff, External\_Visitor)}
+    \caption{CREATE TABLE execution (\texttt{student}, \texttt{staff}, \texttt{external\_visitor})}
     \label{fig:create_tables_1}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{figure/task2_sc/screenshot_create_tables_part2.png}
-    \caption{CREATE TABLE execution (Member\_Email, Member\_Phone, Coach\_Email, Coach\_Phone)}
+    \caption{CREATE TABLE execution (\texttt{member\_email}, \texttt{member\_phone}, \texttt{coach\_email}, \texttt{coach\_phone})}
     \label{fig:create_tables_2}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{figure/task2_sc/screenshot_create_tables_part3.png}
-    \caption{CREATE TABLE execution (Facility, Coach, Maintenance)}
+    \caption{CREATE TABLE execution (\texttt{facility}, \texttt{coach}, \texttt{maintenance})}
     \label{fig:create_tables_3}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{figure/task2_sc/screenshot_create_tables_part4.png}
-    \caption{CREATE TABLE execution (Visitor\_Application, Training\_Session, Session\_Enrollment, Reservation\_Equipments)}
+    \caption{CREATE TABLE execution (\texttt{visitor\_application}, \texttt{training\_session}, \texttt{session\_enrollment}, \texttt{reservation\_equipments})}
     \label{fig:create_tables_4}
 \end{figure}
 
 \subsection{Data Population}
 
 To ensure the database is functional for testing and queries, we populated each
-table with a minimum of 6–10 rows of data. The following screenshot verifies the
-data population by showing the row counts for the key tables in the database.
+table with at least 6 rows of data (meeting the required 6--10 rows where
+practical). In a few cases, additional rows were inserted to support more
+comprehensive trigger testing scenarios in Task 3. The screenshots below provide
+evidence of successful data population and a row-count summary for key tables.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figure/task2_sc/screenshot_insert.png}
+    \caption{Data population execution evidence: representative \texttt{INSERT}/\texttt{UPDATE} statements executed successfully across the schema.}
+    \label{fig:data_population_execution}
+\end{figure}
 
 \begin{figure}[H]
     \centering
@@ -69,8 +78,8 @@ This category demonstrates the use of \texttt{LIKE}, \texttt{BETWEEN}, and
 \textbf{Query 1: Filtering by Pattern (LIKE)} \\
 Find all facilities related to 'Tennis' that are currently available.
 \begin{sql}[caption={Filtering with LIKE}]
-SELECT Facility_Name, Type, Status 
-FROM Facility 
+SELECT Facility_Name, Type, Status
+FROM facility
 WHERE Type LIKE '%Tennis%' AND Status='Available';
 \end{sql}
 
@@ -84,8 +93,8 @@ WHERE Type LIKE '%Tennis%' AND Status='Available';
 \textbf{Query 2: Filtering by Range (BETWEEN)} \\
 Retrieve reservations made for the month of December 2025.
 \begin{sql}[caption={Filtering with BETWEEN}]
-SELECT Reservation_ID, Reservation_Date 
-FROM Reservation 
+SELECT Reservation_ID, Reservation_Date
+FROM reservation
 WHERE Reservation_Date BETWEEN '2025-12-01' AND '2025-12-31';
 \end{sql}
 
@@ -99,8 +108,8 @@ WHERE Reservation_Date BETWEEN '2025-12-01' AND '2025-12-31';
 \textbf{Query 3: Filtering by Set (IN)} \\
 List bookings that are either 'Pending' or 'Confirmed'.
 \begin{sql}[caption={Filtering with IN}]
-SELECT Reservation_ID, Booking_Status 
-FROM Booking 
+SELECT Reservation_ID, Booking_Status
+FROM booking
 WHERE Booking_Status IN ('Pending','Confirmed');
 \end{sql}
 
@@ -120,8 +129,8 @@ This category uses functions like \texttt{COUNT}, \texttt{SUM}, and \texttt{AVG}
 \textbf{Query 4: Counting Records (COUNT)} \\
 Count the number of facilities for each type.
 \begin{sql}[caption={Aggregation with COUNT}]
-SELECT Type, COUNT(*) AS facility_count 
-FROM Facility 
+SELECT Type, COUNT(*) AS facility_count
+FROM facility
 GROUP BY Type;
 \end{sql}
 
@@ -135,8 +144,8 @@ GROUP BY Type;
 \textbf{Query 5: Summing Values (SUM)} \\
 Calculate the total quantity of equipment reserved for each reservation ID.
 \begin{sql}[caption={Aggregation with SUM}]
-SELECT Reservation_ID, SUM(Quantity) AS total_equipment 
-FROM Reservation_Equipments 
+SELECT Reservation_ID, SUM(Quantity) AS total_equipment
+FROM reservation_equipments
 GROUP BY Reservation_ID;
 \end{sql}
 
@@ -150,8 +159,8 @@ GROUP BY Reservation_ID;
 \textbf{Query 6: Averaging Values (AVG)} \\
 Calculate the average maximum capacity of training sessions for each coach.
 \begin{sql}[caption={Aggregation with AVG}]
-SELECT Coach_ID, AVG(Max_Capacity) AS avg_capacity 
-FROM Training_Session 
+SELECT Coach_ID, AVG(Max_Capacity) AS avg_capacity
+FROM training_session
 GROUP BY Coach_ID;
 \end{sql}
 
@@ -172,7 +181,7 @@ This category demonstrates sorting results with \texttt{ORDER BY} and restrictin
 List the top 3 available facilities with the highest capacity.
 \begin{sql}[caption={Sorting and Limiting results}]
 SELECT Facility_Name, Capacity 
-FROM Facility 
+FROM facility
 WHERE Status='Available' 
 ORDER BY Capacity DESC 
 LIMIT 3;
@@ -189,7 +198,7 @@ LIMIT 3;
 Show recent reservations ordered by date and time in descending order.
 \begin{sql}[caption={Multi-column Sorting}]
 SELECT Reservation_ID, Reservation_Date, Start_Time 
-FROM Reservation 
+FROM reservation
 ORDER BY Reservation_Date DESC, Start_Time DESC 
 LIMIT 5;
 \end{sql}
@@ -205,7 +214,7 @@ LIMIT 5;
 List the 5 most recent visitor applications.
 \begin{sql}[caption={Sorting Visitor Applications}]
 SELECT Application_ID, First_Name, Status 
-FROM Visitor_Application 
+FROM visitor_application
 ORDER BY Application_Date DESC 
 LIMIT 5;
 \end{sql}
@@ -229,10 +238,10 @@ This category demonstrates \texttt{INNER JOIN}, \texttt{LEFT JOIN}, and \texttt{
 Retrieve booking details including member name, facility name, and booking status.
 \begin{sql}[caption={Inner Join Example}]
 SELECT b.Reservation_ID, m.First_Name, f.Facility_Name, b.Booking_Status 
-FROM Booking b 
-JOIN Member m ON b.Member_ID=m.Member_ID 
-JOIN Reservation r ON b.Reservation_ID=r.Reservation_ID 
-JOIN Facility f ON r.Facility_ID=f.Facility_ID;
+FROM booking b
+JOIN member m ON b.Member_ID=m.Member_ID 
+JOIN reservation r ON b.Reservation_ID=r.Reservation_ID 
+JOIN facility f ON r.Facility_ID=f.Facility_ID;
 \end{sql}
 
 \begin{figure}[H]
@@ -247,10 +256,10 @@ List all training sessions and their coaches (if assigned), facilities, and capa
 \begin{sql}[caption={Left Join Example}]
 SELECT ts.Reservation_ID, c.First_Name, f.Facility_Name, 
        ts.Max_Capacity 
-FROM Training_Session ts 
-LEFT JOIN Coach c ON ts.Coach_ID=c.Coach_ID 
-LEFT JOIN Reservation r ON ts.Reservation_ID=r.Reservation_ID 
-LEFT JOIN Facility f ON r.Facility_ID=f.Facility_ID;
+FROM training_session ts
+LEFT JOIN coach c ON ts.Coach_ID=c.Coach_ID 
+LEFT JOIN reservation r ON ts.Reservation_ID=r.Reservation_ID 
+LEFT JOIN facility f ON r.Facility_ID=f.Facility_ID;
 \end{sql}
 
 \begin{figure}[H]
@@ -261,11 +270,11 @@ LEFT JOIN Facility f ON r.Facility_ID=f.Facility_ID;
 \end{figure}
 
 \textbf{Query 12: Right Join} \\
-Show all equipment and any reservations associated with them (ensuring all equipment types are listed).
+List equipment reservation-assignment rows, demonstrating \texttt{RIGHT JOIN} syntax.
 \begin{sql}[caption={Right Join Example}]
 SELECT e.Equipment_Name, re.Reservation_ID, re.Quantity 
-FROM Equipment e 
-RIGHT JOIN Reservation_Equipments re ON e.Equipment_ID=re.Equipment_ID;
+FROM equipment e
+RIGHT JOIN reservation_equipments re ON e.Equipment_ID=re.Equipment_ID;
 \end{sql}
 
 \begin{figure}[H]
@@ -286,7 +295,7 @@ Calculate the duration of reservations in hours.
 \begin{sql}[caption={Arithmetic Operation}]
 SELECT Reservation_ID, 
        TIMESTAMPDIFF(MINUTE, Start_Time, End_Time)/60 AS duration_hours 
-FROM Reservation;
+FROM reservation;
 \end{sql}
 
 \begin{figure}[H]
@@ -301,7 +310,7 @@ Combine first and last names into a single full name column for members.
 \begin{sql}[caption={String Concatenation}]
 SELECT CONCAT(First_Name, ' ', Last_Name) AS member_name, 
        Membership_Status 
-FROM Member;
+FROM member;
 \end{sql}
 
 \begin{figure}[H]
@@ -316,8 +325,8 @@ Calculate the theoretical remaining quantity of equipment after reservations.
 \begin{sql}[caption={Complex Arithmetic}]
 SELECT re.Reservation_ID, re.Quantity, e.Total_Quantity, 
        (e.Total_Quantity - re.Quantity) AS remaining_theoretical 
-FROM Reservation_Equipments re 
-JOIN Equipment e ON re.Equipment_ID=e.Equipment_ID;
+FROM reservation_equipments re
+JOIN equipment e ON re.Equipment_ID=e.Equipment_ID;
 \end{sql}
 
 \begin{figure}[H]
@@ -334,11 +343,11 @@ JOIN Equipment e ON re.Equipment_ID=e.Equipment_ID;
 This category focuses on formatting query output using aliases and concatenation for better readability.
 
 \textbf{Query 16: Column Aliasing} \\
-Rename columns for a clear Facility location report.
+Rename columns for a clear facility location report.
 \begin{sql}[caption={Column Aliasing}]
 SELECT Facility_ID AS ID, Facility_Name AS Name, 
        CONCAT(Building,'-',Floor,'-',Room_Number) AS Location 
-FROM Facility;
+FROM facility;
 \end{sql}
 
 \begin{figure}[H]
@@ -349,14 +358,14 @@ FROM Facility;
 \end{figure}
 
 \textbf{Query 17: Date Formatting} \\
-Format reservation dates and create user-friendly Booking summaries.
+Format reservation dates and create user-friendly booking summaries.
 \begin{sql}[caption={Date Formatting and Concatenation}]
 SELECT b.Reservation_ID AS BookingID, 
        CONCAT(m.First_Name,' ',m.Last_Name) AS Member, 
        DATE_FORMAT(r.Reservation_Date,'%Y-%m-%d') AS Date 
-FROM Booking b 
-JOIN Member m ON b.Member_ID=m.Member_ID 
-JOIN Reservation r ON b.Reservation_ID=r.Reservation_ID;
+FROM booking b
+JOIN member m ON b.Member_ID=m.Member_ID 
+JOIN reservation r ON b.Reservation_ID=r.Reservation_ID;
 \end{sql}
 
 \begin{figure}[H]
@@ -372,9 +381,9 @@ Create a formatted schedule for training sessions.
 SELECT ts.Reservation_ID AS SessionID, 
        CONCAT(c.First_Name,' ',c.Last_Name) AS CoachName, 
        CONCAT(r.Start_Time,'-',r.End_Time) AS TimeSlot 
-FROM Training_Session ts 
-JOIN Coach c ON ts.Coach_ID=c.Coach_ID 
-JOIN Reservation r ON ts.Reservation_ID=r.Reservation_ID;
+FROM training_session ts
+JOIN coach c ON ts.Coach_ID=c.Coach_ID 
+JOIN reservation r ON ts.Reservation_ID=r.Reservation_ID;
 \end{sql}
 
 \begin{figure}[H]
@@ -383,4 +392,3 @@ JOIN Reservation r ON ts.Reservation_ID=r.Reservation_ID;
     \caption{Output of Query 18}
     \label{fig:query18}
 \end{figure}
-
