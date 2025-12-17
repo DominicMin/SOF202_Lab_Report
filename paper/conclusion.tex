@@ -1,0 +1,36 @@
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+
+This report has detailed the design, implementation, and verification of a
+robust University Sports Complex Management System. Our solution effectively
+bridges the gap between theoretical database principles and practical
+application development.
+
+\subsection*{Summary of Achievements}
+\begin{itemize}
+    \item \textbf{Data Integrity:} We established a solid foundation using
+    Domain, Entity, and Referential integrity constraints. As demonstrated in
+    Task 1, these constraints act as the non-negotiable guardians of data
+    quality, preventing invalid states (e.g., negative inventory or conflicting
+    timestamps) even if the application layer fails.
+    \item \textbf{SQL Proficiency vs. ORM:} Task 2 demonstrated the comprehensive implementation of the schema and complex data retrieval needs. While Django handles standard CRUD operations, our raw SQL queries (including Joins, Aggregates, and Subqueries) proved essential for generating advanced analytical reports that go beyond basic object retrieval.
+    \item \textbf{Business Logic Enforcement:} In Task 3, we utilized SQL
+    triggers to implement complex rules such as dynamic booking limits (max 2
+    pending bookings) and cross-table validation (equipment availability). This
+    ensures that business rules are consistent regardless of the access method.
+    \item \textbf{Secure Access Control:} Task 4 showcased a defense-in-depth
+    security strategy. By combining Role-Based Access Control (RBAC) with
+    Row-Level Security views, we ensured that users like Coaches and Members
+    operate within strictly defined boundaries, protecting sensitive data while
+    maintaining usability.
+    \item \textbf{Application Integration:} The integration with Django
+    demonstrates the synergy between a powerful backend DBMS and a modern web
+    framework. While Django provides a user-friendly interface and preliminary
+    validation (e.g., form checks), the MySQL database serves as the ultimate
+    source of truth and enforcement.
+\end{itemize}
+
+In conclusion, the system meets all specified requirements for data integrity,
+security, and functionality. The "Database First" design philosophy ensures that
+the system is reliable, scalable, and maintainable, capable of supporting the
+dynamic operations of a busy sports complex.

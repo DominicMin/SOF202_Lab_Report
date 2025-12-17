@@ -99,13 +99,22 @@ CREATE TABLE `booking`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 \end{sql}
 
-\subsection{SQL Evidence: Table Creation Verification}
-After deploying the schema, we verified the actual DDL stored in MySQL using \texttt{SHOW CREATE TABLE}. Figure~\ref{fig:task1:sql-show-create} shows successful execution for \texttt{equipment} and \texttt{reservation}, confirming that the domain constraints (data types and \texttt{CHECK}), entity constraints (primary keys and \texttt{UNIQUE} indices), and referential constraints (foreign keys such as \texttt{reservation.Facility\_ID}) are present as designed in \code{sports_arena.sql}.
+\subsection{SQL Evidence: Table Creation and Verification}
+After deploying the schema, we verified both the execution logic and the stored definitions. Figure~\ref{fig:task1:create-exec} shows the successful execution of the \texttt{CREATE TABLE} statements for key tables, confirming that the DBMS accepted the integrity constraints (Query OK).
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{figure/task1/sql_create_table_execution.png}
+  \caption{Execution evidence: Successful \texttt{CREATE TABLE} operation (Green Check / Query OK) for \texttt{equipment} and \texttt{reservation}, strictly corresponding to Task 1A constraints.}
+  \label{fig:task1:create-exec}
+\end{figure}
+
+Figure~\ref{fig:task1:sql-show-create} subsequently confirms the DDL stored in MySQL using \texttt{SHOW CREATE TABLE}, verifying that domain (CHECK), entity (PK/Unique), and referential (FK) constraints are persisted as designed.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.92\textwidth]{figure/task1/sql_create_table.png}
-  \caption{SQL verification: successful \texttt{SHOW CREATE TABLE} execution for \texttt{equipment} and \texttt{reservation}, confirming that integrity constraints are deployed in the DBMS.}
+  \caption{SQL verification: successful \texttt{SHOW CREATE TABLE} output for \texttt{equipment} and \texttt{reservation}.}
   \label{fig:task1:sql-show-create}
 \end{figure}
 

@@ -85,11 +85,32 @@ REVOKE SELECT ON sports_arena.booking FROM member_role;
 \end{sql}
 
 \subsubsection{Verification Evidence (SQL)}
+First, we verified the active permissions to ensure the role configuration is
+effective. Figure~\ref{fig:task4:show-grants} displays the \texttt{SHOW GRANTS}
+output, confirming the specific privileges assigned to the user accounts.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figure/task4/root.png}
+  \\
+  \textbf{Root User}
+  \\
+  \includegraphics[width=0.8\textwidth]{figure/task4/coach.png}
+  \\
+  \textbf{Coach User}
+  \\
+  \includegraphics[width=0.8\textwidth]{figure/task4/member.png}
+  \\
+  \textbf{Member User}
+  \caption{Permission verification: \texttt{SHOW GRANTS} output demonstrating active privileges for \texttt{root},\texttt{coach} and \texttt{member} roles.}
+  \label{fig:task4:show-grants}
+\end{figure}
+
 Figure~\ref{fig:task4:sql-coach-select} demonstrates an allowed operation: a coach account can successfully read rows from \texttt{training\_session} (showing \texttt{Reservation\_ID}, \texttt{Max\_Capacity}, and \texttt{Coach\_ID}). This supports day-to-day coaching tasks such as checking the sessions they are responsible for.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.85\textwidth]{figure/task4/sql_coach_select.png}
+  \includegraphics[width=0.7\textwidth]{figure/task4/sql_coach_select.png}
   \caption{RBAC verification (allowed): coach can \texttt{SELECT} from \texttt{training\_session}.}
   \label{fig:task4:sql-coach-select}
 \end{figure}
@@ -155,13 +176,25 @@ WHERE b.Member_ID = 1;  -- demo: current member (e.g., Member_ID=1)
 GRANT SELECT ON v_member_booking_detail TO member_role;
 \end{sql}
 
-Figure~\ref{fig:task4:sql-member-select-view} confirms that, after revoking base-table access (Figure~\ref{fig:task4:sql-member-select-booking-denied}), the member can still retrieve necessary booking details through the view, without exposing other members' data.
+Figure~\ref{fig:task4:sql-member-select-view} confirms that, after revoking
+base-table access (Figure~\ref{fig:task4:sql-member-select-booking-denied}), the
+member can still retrieve necessary booking details through the view, without
+exposing other members' data.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth]{figure/task4/sql_member_select_view.png}
   \caption{Row-level control (allowed via view): member queries the restricted booking view and receives only permitted rows.}
   \label{fig:task4:sql-member-select-view}
+\end{figure}
+
+To further validate the effectiveness of the Row-Level Security, we conducted a negative test where Member 1 attempts to explicitly retrieve records belonging to another member (e.g., Member 2). As demonstrated in Figure~\ref{fig:task4:member-isolation}, the result is an empty set (or equivalent denial), confirming that the view successfully filters out unauthorized data even when specifically requested.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{figure/task4/sc4_member_deny.png}
+  \caption{Isolation verification: Member 1 attempts to access Member 2's booking data through the view, resulting in error (Access Denied).}
+  \label{fig:task4:member-isolation}
 \end{figure}
 
 \subsubsection{Django Row-Level Filtering and Update Boundaries}
@@ -194,7 +227,7 @@ Finally, Figure~\ref{fig:task4:ui-403} shows the system behavior when a user att
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.4\textwidth]{figure/task4/403.png}
+  \includegraphics[width=0.35\textwidth]{figure/task4/403.png}
   \caption{Authorization enforcement: unauthorized access is blocked with HTTP 403 and a dedicated error page.}
   \label{fig:task4:ui-403}
 \end{figure}

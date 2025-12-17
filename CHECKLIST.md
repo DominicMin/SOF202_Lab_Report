@@ -112,3 +112,9 @@
     - Query 17: Date Formatting
     - Query 18: Session Formatting
     - **位置**: `paper/task2.tex` -> `Figure 2.11` (`screenshot_query_formatting.png`)
+
+
+Task 1：增加 1 张 Workbench 中“CREATE TABLE ... 执行成功（绿色勾/Query OK）”的截图，专门对应 Task1A 的要求（与现有“SHOW CREATE TABLE 验证”形成闭环）。
+Task 2：建议把“每个表的行数统计”做成 1 张综合截图（多条 SELECT COUNT(*) 或一个汇总视图/脚本输出），避免只统计“关键表”被认为证据不全。
+Task 4：补充 1 张权限核验截图：如 SHOW GRANTS FOR 'xxx'@'%'（或 Workbench 的 GRANTS 输出），让“权限确实生效”更直观。
+Fig4.5 应该再加上一个不能访问member2
